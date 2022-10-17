@@ -5,7 +5,7 @@
 // final_project.c - driver for PS2SDK-driven library (fplib.h)
 // --------------------------------------------------
 
-#include "../include/project.h"
+#include "../include/project.hpp"
 
 int main()
 {

@@ -1,4 +1,4 @@
-#include "../include/fp_lib.h"
+#include "../include/fp_lib.hpp"
 
 void debug_text(int x, int y, const char* string, int t)
 {
