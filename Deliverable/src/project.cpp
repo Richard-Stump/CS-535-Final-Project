@@ -7,9 +7,22 @@
 
 #include "../include/project.hpp"
 
+#include "../include/glm/glm.hpp"
+
+class Camera
+{
+public:
+
+	float x, y, z;
+};
+
 int main()
 {
     project_title();
+
+	Camera camera;
+
+	camera.x = 12.0f;
 
     // The minimum buffers needed for single buffered rendering.
 	framebuffer_t frame;

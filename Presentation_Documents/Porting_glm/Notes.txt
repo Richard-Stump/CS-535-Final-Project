@@ -1,0 +1,6 @@
+Since the PS2 does not follow the IEE754 format, GLM would not compile out of the box.
+
+GLM did a bunch of static checks to ensure that floats were IEE 754 compliant, so I 
+changed those checks to just check that they were some sort of floating point.
+
+Whether or not this might break something, I don't know.
