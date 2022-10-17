@@ -15,19 +15,19 @@ The project development timeline is broken down into three milestones and a fina
      - marry colors and textures to vertices
    - Kick Calculations to Graphics Synthesizer
   - Exit Gracefully
-- Milestone 2: Interactive and Procedural VU1:
-  - Camera:
-   - Create/Load
-   - Move
-  - Objects:
-   - Collision
-   - Animation
-   - Disappear
-   - etc.
+- Milestone 2: Interactive, Procedural, and OOP VU1:
+  - Camera (user-updating MVP):
+    - Create/Load
+    - Move
+  - Objects (objects updating objects):
+    - Collision
+    - Animation
+    - Disappear
+    - etc.
 - Milestone 3: Functional VU1 App/Game:
-  - Tick/Tock Clock
-  - Keep Score
-  - Interact With GUI
+  - Tick/Tock Clock (make it challenging)
+  - Keep Score (keep it fun)
+  - Interact With GUI (make it welcoming)
 - Deliverable: CS434/535 Lab-like game or app... hopefully multiple!
 
 ## Table of Contents
