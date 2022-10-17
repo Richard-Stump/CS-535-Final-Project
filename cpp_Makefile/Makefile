@@ -1,10 +1,15 @@
-## from https://github.com/williamblair/PS2Pad
+## from https://github.com/williamblair/PS2Pad, modified by Rey Gonzalez and Richard Stump
 
 # ---------------------------------------------------------
 
 #ifndef SOURCE_PATH
 #SOURCE_PATH = /home/bj/Documents/console_dev/ps2/glampert/glampert-ps2dev-tests-dfef4fc8fdeb/source
 #endif
+
+
+# NAMETAG = main
+ELF_NT = ./out/main.elf
+ISO_NT = ./out/main.iso
 
 ifndef INSTALL_PATH
 INSTALL_PATH = /Applications/pcsx2.app/Contents/Resources/pcsx2
@@ -15,13 +20,16 @@ RUN_CMD = open -a pcsx2
 endif
 
 ifndef EE_BIN
-EE_BIN = main.elf
+EE_BIN = $(ELF_NT)
 endif
+
 
 # ---------------------------------------------------------
 
 EE_OBJS =                                           \
-	main.o \
+	./src/main.o \
+	./src/Dummy.o \
+	./src/Camera.o
 
 # ---------------------------------------------------------
 
@@ -69,13 +77,18 @@ EE_CXXFLAGS +=                \
 
 # ---------------------------------------------------------
 
+ISO_NAME = $(ISO_NT)
+
 all: $(EE_BIN)
+	mkisofs -o $(ISO_NT) ./out
+	
 # ee-strip --strip-all $(EE_BIN)
 
 # ---------------------------------------------------------
 
 clean:
-	rm -f *.elf *.o *.a
+	rm -f ./out/*.elf ./out/*.iso ./src/*.o
+# rm -f ./out/*.elf ./src/*.o *.a
 # ---------------------------------------------------------
 
 run: $(EE_BIN)
@@ -83,6 +96,8 @@ run: $(EE_BIN)
 	$(RUN_CMD)
 
 # ---------------------------------------------------------
+
+rebuild: clean all
 
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal
