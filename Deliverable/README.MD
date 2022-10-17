@@ -28,7 +28,7 @@ The project development timeline is broken down into three milestones and a fina
   - Tick/Tock Clock (make it challenging)
   - Keep Score (keep it fun)
   - Interact With GUI (make it welcoming)
-- November 28 - December 7, 2002 <- Deliverable: CS434/535 Lab-like game or app... hopefully multiple "scenes"!
+- November 28 - December 7, 2002: Deliverable: CS434/535 Lab-like game or app... hopefully multiple "scenes"!
 
 ## Table of Contents
 
