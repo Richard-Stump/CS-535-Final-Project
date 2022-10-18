@@ -1,2 +1,3 @@
 *.o
 /menu_test
+.vscode
