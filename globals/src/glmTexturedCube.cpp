@@ -1,16 +1,16 @@
-#include "../include/TexturedCube.hpp"
+#include "../include/glmglmTexturedCube.hpp"
 
-TexturedCube::TexturedCube()
+glmTexturedCube::glmTexturedCube()
 {
     init();
 	position[0] = 130.0f;
 	position[1] = 140.0f;
 	position[2] = 0.0f;
 	position[3] = 1.0;
-    cube_packet = packet2_create(6, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+    cube_packet = packet2_create(10, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
 }
 
-void TexturedCube::init()
+void glmTexturedCube::init()
 {
     packet2_add_float(cube_packet, 2048.0F);					  // scale
 	packet2_add_float(cube_packet, 2048.0F);					  // scale
@@ -55,83 +55,83 @@ void TexturedCube::init()
 	texbuffer.info.function = TEXTURE_FUNCTION_DECAL;
 }
 
-packet2_t* TexturedCube::get_packet()
+packet2_t* glmTexturedCube::get_packet()
 {
 	return cube_packet;
 }
 
-texbuffer_t TexturedCube::get_texbuffer()
+texbuffer_t glmTexturedCube::get_texbuffer()
 {
 	return texbuffer;
 }
 
-texbuffer_t* TexturedCube::get_texbuffer_ptr()
+texbuffer_t* glmTexturedCube::get_texbuffer_ptr()
 {
 	return &texbuffer;
 }
 
-void TexturedCube::free_packet()
+void glmTexturedCube::deleet()
 {
 	packet2_free(cube_packet);
 }
 
-void TexturedCube::add_position(int i, float v)
+void glmTexturedCube::add_position(Vec4 v)
 {
-	if(i < 4) position[i] += v;
+	position += v;
 }
 
-void TexturedCube::add_rotation(int i, float v)
+void glmTexturedCube::add_rotation(Vec4 v)
 {
-	if(i < 4) rotation[i] += v;
+	rotation += v;
 }
 
 
-float* TexturedCube::get_position()
+Vec4 glmTexturedCube::get_position()
 {
 	return position;
 }
 
-void TexturedCube::set_position(int i, float v)
+void glmTexturedCube::set_position(Vec4 v)
 {
-	if(i < 4) position[i] = v;
+	position = v;
 }
 
-float* TexturedCube::get_rotation()
+Vec4 glmTexturedCube::get_rotation()
 {
 	return rotation;
 }
 
-prim_t TexturedCube::get_prim()
+prim_t glmTexturedCube::get_prim()
 {
 	return prim;
 }
 
-prim_t* TexturedCube::get_prim_ptr()
+prim_t* glmTexturedCube::get_prim_ptr()
 {
 	return &prim;
 }
 
-clutbuffer_t TexturedCube::get_clut()
+clutbuffer_t glmTexturedCube::get_clut()
 {
 	return clut;
 }
 
-clutbuffer_t* TexturedCube::get_clut_ptr()
+clutbuffer_t* glmTexturedCube::get_clut_ptr()
 {
 	return &clut;
 }
 
-lod_t TexturedCube::get_lod()
+lod_t glmTexturedCube::get_lod()
 {
 	return lod;
 }
 
-lod_t* TexturedCube::get_lod_ptr()
+lod_t* glmTexturedCube::get_lod_ptr()
 {
 	return &lod;
 }
 
-void TexturedCube::draw(MATRIX local_world, MATRIX world_view, MATRIX view_screen, MATRIX local_screen, VECTOR camera_position, VECTOR camera_rotation, packet2_t **vif_packets, packet2_t *curr_vif_packet, u8 context, VECTOR* c_verts, VECTOR* c_sts)
+void glmTexturedCube::draw(MATRIX local_world, MATRIX world_view, MATRIX view_screen, MATRIX local_screen, VECTOR camera_position, VECTOR camera_rotation, packet2_t **vif_packets, packet2_t *curr_vif_packet, u8 context, VECTOR* c_verts, VECTOR* c_sts)
 {
 	create_local_world(local_world, position, rotation);
 	create_world_view(world_view, camera_position, camera_rotation);
@@ -165,4 +165,14 @@ void TexturedCube::draw(MATRIX local_world, MATRIX world_view, MATRIX view_scree
 
 	// Switch packet, so we can proceed during DMA transfer
 	context = !context;
+}
+
+Mat4 glmTexturedCube::get_model()
+{
+	return model;
+}
+
+void glmTexturedCube::set_model(Mat4 _model)
+{
+	model = _model;
 }

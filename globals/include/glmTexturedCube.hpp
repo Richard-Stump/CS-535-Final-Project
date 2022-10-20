@@ -21,10 +21,11 @@
 #pragma once
 #include <packet.h>
 
-using VECTOR = float[4];
-using MATRIX = float[16];
+using Vec3 = glm::vec3;
+using Vec4 = glm::vec4;
+using Mat4 = glm::mat4;
 
-class TexturedCube
+class glmTexturedCube
 {
 private:
     packet2_t* cube_packet;
@@ -36,23 +37,26 @@ private:
 
     int faces_count = 2;
 
-    VECTOR position = {0.00f, 0.00f, 0.00f, 1.00f};
-    VECTOR rotation = {0.00f, 0.00f, 0.00f, 1.00f};
+    Vec4 position = Vec4(0.00f, 0.00f, 0.00f, 1.00f);
+    // Vec4 rotation = Vec4(0.00f, 0.00f, 0.00f, 1.00f);
+    Vec3 rotation_direction = Vec3(0,0,0);
+    float rotation_magnitude = 0.0f;
+    Mat4 model = Mat4(1.0f);
 
 public:
-    TexturedCube();
-    ~TexturedCube();
+    glmTexturedCube();
+    ~glmTexturedCube();
 
     void init();
     packet2_t* get_packet();
     texbuffer_t get_texbuffer();
     texbuffer_t* get_texbuffer_ptr();
-    void free_packet();
-    void add_position(int, float);
-    void add_rotation(int, float);
-    void set_position(int, float);
-    float* get_position();
-    float* get_rotation();
+    void deleet();
+    void add_position(Vec4);
+    void add_rotation(Vec3);
+    void set_position(Vec4);
+    Vec4 get_position();
+    Vec3 get_rotation();
     prim_t get_prim();
     prim_t* get_prim_ptr();
     clutbuffer_t get_clut();
@@ -60,4 +64,6 @@ public:
     lod_t get_lod();
     lod_t* get_lod_ptr();
     void draw(MATRIX local_world, MATRIX world_view, MATRIX view_screen, MATRIX local_screen, VECTOR camera_position, VECTOR camera_rotation, packet2_t **vif_packets, packet2_t *curr_vif_packet, u8 context, VECTOR* c_verts, VECTOR* c_sts);
+    Mat4 get_model();
+    void set_model(Mat4);
 };
