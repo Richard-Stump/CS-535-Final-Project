@@ -1,0 +1,6 @@
+{
+    "files.associations": {
+        "*.global": "Makefile",
+        "dma.h": "c"
+    }
+}
