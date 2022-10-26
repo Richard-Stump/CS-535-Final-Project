@@ -11,13 +11,11 @@ iso: programs startup
 	@echo "\033[0;96mCreating ISO\033[0;0m"
 	mkdir -p out
 
-	for dir in $(PROGRAM_SUBDIRS); do								\
-		cp $$dir/out/*.elf out/;									\
-	done
+# Remove any isos in the output folder so they don't get inserted into the new
+# new iso. This prevents the filesize from accumulating
+	rm -f ./out/*.iso
 
-	cp SYSTEM.CNF out/
-
-	mkisofs -o ./out/$(ISO_NAME) ./out
+	mkisofs -o ./out/$(ISO_NAME) $(wildcard ./Programs/*/out/*.elf) ./Resources/
 
 # Build all the programs in the ./programs subdirectory. 
 # This should build all of the .elf files that we need
