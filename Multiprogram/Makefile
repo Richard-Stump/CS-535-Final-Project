@@ -33,5 +33,12 @@ startup:
 	@echo "\033[0;96mBuilding startup program \033[0;0m"
 	$(MAKE) -C ./Startup/
 
+.PHONY: clean
 clean:
 	rm -rf out
+
+	for dir in $(PROGRAM_SUBDIRS); do		\
+		$(MAKE) -C $$dir clean;				\
+	done
+
+	$(MAKE) -C ./Startup clean
