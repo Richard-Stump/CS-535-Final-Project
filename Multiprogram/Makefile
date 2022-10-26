@@ -15,7 +15,7 @@ iso: programs startup
 # new iso. This prevents the filesize from accumulating
 	rm -f ./out/*.iso
 
-	mkisofs -o ./out/$(ISO_NAME) $(wildcard ./Programs/*/out/*.elf) ./Resources/
+	mkisofs -o ./out/$(ISO_NAME) $(wildcard ./Programs/*/out/*.elf) $(wildcard ./Startup/out/*.ELF) ./Resources/
 
 # Build all the programs in the ./programs subdirectory. 
 # This should build all of the .elf files that we need
