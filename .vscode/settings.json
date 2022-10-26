@@ -1,5 +1,6 @@
 {
     "files.associations": {
+        "*.global": "Makefile",
         "final_project.h": "c",
         "stdio.h": "c",
         "fplib.h": "c",
@@ -8,6 +9,8 @@
         "string": "c",
         "string_view": "c",
         "vector": "c",
-        "project.h": "c"
+        "project.h": "c",
+        "purdue_logo.c": "cpp",
+        "cube_mesh_data.c": "cpp"
     }
 }

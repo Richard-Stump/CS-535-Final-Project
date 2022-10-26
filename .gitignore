@@ -1,5 +1,6 @@
 *.o
 /menu_test
+/glm_test
 .vscode
 
 Multiprogram/out
