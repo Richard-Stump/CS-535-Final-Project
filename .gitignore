@@ -3,6 +3,6 @@
 /glm_test
 .vscode
 
-Multiprogram/out
-Multiprogram/Startup/out
-Multiprogram/Programs/*/out
+/Multiprogram/out
+/Multiprogram/Startup/out
+/Multiprogram/Programs/*/out
