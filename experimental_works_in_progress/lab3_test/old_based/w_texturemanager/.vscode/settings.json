@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "*.global": "Makefile",
+        "__node_handle": "cpp",
+        "cube_mesh_data.c": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "vector": "cpp",
+        "string_view": "cpp"
+    }
+}

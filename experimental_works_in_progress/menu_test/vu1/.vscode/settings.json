@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "*.global": "Makefile",
+        "bedrich.c": "cpp",
+        "purdue_logo.c": "cpp"
+    }
+}
