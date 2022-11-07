@@ -1,0 +1,9 @@
+
+
+Wireframe Rendering:
+ - GS registers:
+    - 00h:
+            Primitive set to line
+            rest of the registers are off
+    - 1ah:  Set to zero since we don't wna to use primitive mode register
+    - 01h: 
