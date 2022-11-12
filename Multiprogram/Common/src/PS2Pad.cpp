@@ -11,7 +11,7 @@
  *
  * */
 
-#include "../include/PS2Pad.hpp"
+#include <PS2Pad.hpp>
 
 /* initialize static member variables */
 bool PS2Pad::modulesLoaded = false;

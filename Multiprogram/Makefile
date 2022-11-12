@@ -7,7 +7,7 @@ all: iso
 # Builds the ISO for the project. Takes all the elf files from the ./programs
 # directory and startup and then puts them into one iso
 .PHONY: iso
-iso: programs startup
+iso: programs startup 
 	@echo "\033[0;96mCreating ISO\033[0;0m"
 	mkdir -p out
 
@@ -34,7 +34,7 @@ startup:
 	$(MAKE) -C ./Startup/
 
 .PHONY: common
-startup:
+common:
 	@echo "\033[0;96mBuilding common library \033[0;0m"
 	$(MAKE) -C ./Common/
 
@@ -46,4 +46,5 @@ clean:
 		$(MAKE) -C $$dir clean;				\
 	done
 
-	$(MAKE) -C ./Startup clean
+	$(MAKE) -C ./Startup/ clean
+	$(MAKE) -C ./Common/ clean

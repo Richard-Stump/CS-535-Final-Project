@@ -6,9 +6,14 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
+# External libraries and headers for the program. The libcommon.a file does get
+# prefixed with -l since it is not in a library search path.
+EE_LIBS = -ldraw -lgraph -lmath3d -lpacket2 -ldma ../../Common/libcommon.a
+EE_INCS = ../../Common/include
+
+# Options related to this specific program
 EE_BIN = ./out/milestoneA.elf
 EE_OBJS = ./vu1/draw_3D.o ./src/main.o
-EE_LIBS = -ldraw -lgraph -lmath3d -lpacket2 -ldma
 EE_DVP = dvp-as
 ISO_NAME = ./out/milestoneA.iso
 #EE_VCL = vcl
@@ -42,6 +47,7 @@ purdue_logo.c:
 
 clean:
 	rm -f $(EE_BIN) $(EE_OBJS) $(ISO_NAME)
+	rm -rf out
 
 run: $(EE_BIN)
 	ps2client execee host:$(EE_BIN)

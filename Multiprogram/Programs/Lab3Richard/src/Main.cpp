@@ -19,6 +19,8 @@
 
 #include <stdint.h>
 
+#include <glmModdedFunctions.hpp>
+
 const float lineData[] = {
     0, 0,
     200, 200
@@ -27,7 +29,6 @@ const uint32_t numLines = 2;
 
 void sendDataToVu1(void* ee_ptr, void* vu1_ptr, size_t numBytes)
 {
-    packet2_t* packet = packet2_create_from()
 }
 
 int main(int argc, char *argv[])
