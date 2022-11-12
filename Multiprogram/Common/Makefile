@@ -6,23 +6,17 @@
 # Licenced under Academic Free License version 2.0
 # Review ps2sdk README & LICENSE files for further details.
 
-EE_BIN = ./out/STARTUP.ELF
-EE_INCS = ../Common/include
-EE_OBJS = ./src/Main.o
+EE_OBJS = ./src/glmTexturedCube.o ./src/PS2Pad.o ./src/TexturedCube.o
 EE_LIBS = -ldebug -lc -ldraw -lgraph -lmath3d -lpacket2 -ldma -lpacket
 EE_DVP = dvp-as
+EE_INCS = ./include/
+EE_LIB = common.a
 
-all: $(EE_BIN)
-	@echo "Done building startup program"
-
-%.o: %.vsm
-	$(EE_DVP) $< -o $@
-
-vu1:
-	openvcl ./vu1/vu1_code.vlc > ./vu1/vu1_code.vsm
+all: $(EE_LIB)
+	@echo "Done building common library"
 
 clean:
-	rm -f $(EE_BIN) $(EE_OBJS) $(ISO_NAME)
+	rm -f $(EE_LIB) $(EE_OBJS)
 
 include $(PS2SDK)/samples/Makefile.pref
 include $(PS2SDK)/samples/Makefile.eeglobal

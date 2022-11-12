@@ -7,3 +7,14 @@ Wireframe Rendering:
             rest of the registers are off
     - 1ah:  Set to zero since we don't wna to use primitive mode register
     - 01h: 
+
+gskick:
+    The gskick instruction takes a register holding the address of the 
+    primitive information
+    
+
+Program:
+    1) Upload microprogram for vu1
+    2) Load vertex data from CD
+    3) Send vertex data to vu1 and store them as a constants in memory
+    4) 

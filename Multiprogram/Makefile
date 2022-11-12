@@ -19,7 +19,7 @@ iso: programs startup
 
 # Build all the programs in the ./programs subdirectory. 
 # This should build all of the .elf files that we need
-.PHONY: programs
+.PHONY: programs common
 programs:
 	for dir in $(PROGRAM_SUBDIRS); do 								\
 		echo "\033[0;96mBuilding program $$dir \033[0;0m";			\
@@ -28,10 +28,15 @@ programs:
 
 # Build the startup program. This will just build the .elf file for the startup,
 # not create the cd
-.PHONY: startup
+.PHONY: startup common
 startup:
 	@echo "\033[0;96mBuilding startup program \033[0;0m"
 	$(MAKE) -C ./Startup/
+
+.PHONY: common
+startup:
+	@echo "\033[0;96mBuilding common library \033[0;0m"
+	$(MAKE) -C ./Common/
 
 .PHONY: clean
 clean:
