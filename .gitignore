@@ -7,6 +7,6 @@
 /Multiprogram/Programs/*/out
 
 # Ignore any of the object, library, elf files that are produced.
-**.o
-**.a
-**.elf
+**/*.o
+**/*.a
+**/*.elf
