@@ -1,8 +1,12 @@
-*.o
-/menu_test
-/glm_test
+# Ignore the .vscode settings I have
 .vscode
 
+# Ignore the output files
 /Multiprogram/out
 /Multiprogram/Startup/out
 /Multiprogram/Programs/*/out
+
+# Ignore any of the object, library, elf files that are produced.
+**.o
+**.a
+**.elf
