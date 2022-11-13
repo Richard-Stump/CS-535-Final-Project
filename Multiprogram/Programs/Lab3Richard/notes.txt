@@ -18,3 +18,7 @@ Program:
     2) Load vertex data from CD
     3) Send vertex data to vu1 and store them as a constants in memory
     4) 
+
+VU1 Memory Layout:
+    0x0000 - Transform Matrix row 0
+    0x0001 - Transform Matrix row 1

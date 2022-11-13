@@ -8,10 +8,10 @@
 
 # External libraries and headers for the program. The libcommon.a file does get
 # prefixed with -l since it is not in a library search path.
-EE_LIBS = -ldraw -lgraph -lmath3d -lpacket2 -ldma ../../Common/libcommon.a
+EE_LIBS = -ldraw -lgraph -lmath3d -lpacket2 -ldma -ldebug ../../Common/libcommon.a
 EE_INCS = ../../Common/include
 
-EE_BIN = ./out/milestoneA.elf
+EE_BIN = ./out/LAB3_R.ELF
 EE_OBJS = ./src/Main.o
 EE_DVP = dvp-as
 ISO_NAME = ./out/milestoneA.iso
