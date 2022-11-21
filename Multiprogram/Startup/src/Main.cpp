@@ -34,5 +34,5 @@ extern "C" {
 int main(int argc, char** argv)
 {
     // Load up the cubes elf to see if this works.
-    LoadExecPS2("cdrom0:\\MILES000.ELF", argc, argv);
+    LoadExecPS2("cdrom0:\\LAB3_R.ELF", argc, argv);
 }

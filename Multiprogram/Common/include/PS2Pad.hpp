@@ -39,7 +39,7 @@
 #include <stdio.h>
 #include <malloc.h>
 
-#include "libpad.h"
+#include <libpad.h>
 
 #include <cstdlib>
 

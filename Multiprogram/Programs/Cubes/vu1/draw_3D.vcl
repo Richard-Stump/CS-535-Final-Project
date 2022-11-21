@@ -19,7 +19,7 @@
 ; - Guilherme Lampert                                          |
 ;---------------------------------------------------------------
 
-.syntax new
+.syntax
 .name VU1Draw3D
 .vu
 .init_vf_all
@@ -37,7 +37,7 @@
     ;/////////////////////////////////////////////
 
 	fcset   0x000000	; VCL won't let us use CLIP without first zeroing
-				; the clip flags
+				        ; the clip flags
 
     ;//////////// --- Load data 2 --- /////////////
     ; Updated dynamically

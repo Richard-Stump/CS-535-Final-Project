@@ -8,7 +8,7 @@
 
 # External libraries and headers for the program. 
 EE_OBJS = ./src/glmTexturedCube.o ./src/PS2Pad.o ./src/TexturedCube.o
-EE_LIBS = -ldebug -lc -ldraw -lgraph -lmath3d -lpacket2 -ldma -lpacket
+EE_LIBS = -ldebug -lc  -ldraw -lgraph -lmath3d -lpacket2 -lpad -lpadx -ldma -lpacket -lstdc++
 EE_DVP = dvp-as
 
 EE_INCS = ./include/

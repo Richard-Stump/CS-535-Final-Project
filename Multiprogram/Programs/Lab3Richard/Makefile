@@ -8,26 +8,26 @@
 
 # External libraries and headers for the program. The libcommon.a file does get
 # prefixed with -l since it is not in a library search path.
-EE_LIBS = -ldraw -lgraph -lmath3d -lpacket2 -ldma -ldebug ../../Common/libcommon.a
-EE_INCS = ../../Common/include
+EE_LIBS = ../../Common/libcommon.a -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib -lSDL2main -lSDL2 -lps2_drivers -lgskit -ldmakit -lpad -lpatches -lstdc++ -ldma -lpacket -ldraw -lgraph -lpacket2 -ldebug  -lpadx -laudsrv
+EE_INCS = ../../Common/include -I./include -I$(PS2SDK)/ports/include  -I$(GSKIT)/include
 
 EE_BIN = ./out/LAB3_R.ELF
-EE_OBJS = ./src/Main.o
+EE_OBJS = ./src/Main.o ./src/UseSdl.o ./src/Mesh.o ./src/Application.o ./src/GameObject.o ./src/Ps2.o ./vu1/DrawLines.o
 EE_DVP = dvp-as
-ISO_NAME = ./out/milestoneA.iso
-#EE_VCL = vcl
+EE_VCL = ../../Tools/openvcl
+
+EE_HEADERS = $(shell find ./include -name '*.hpp')
 
 all: $(EE_BIN)
 #all: ./images/bedrich.c $(EE_BIN)
 	$(EE_STRIP) --strip-all $(EE_BIN)
-	mkisofs -o $(ISO_NAME) ./out
 #	pcsx2 $(ISO_NAME)
 
 # Original VCL tool preferred. 
 # It can be runned on WSL, but with some tricky commands: 
 # https://github.com/microsoft/wsl/issues/2468#issuecomment-374904520
-#%.vsm: %.vcl
-#	$(EE_VCL) $< >> $@
+%.vsm: %.vcl
+	$(EE_VCL) $< >> $@
 
 %.o: %.vsm
 	$(EE_DVP) $< -o $@

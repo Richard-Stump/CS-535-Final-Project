@@ -10,7 +10,7 @@ namespace detail
 	{
 		GLM_FUNC_QUALIFIER static T call(vec<2, T, Q> const& v, vec<2, T, Q> const& u)
 		{
-			GLM_STATIC_ASSERT(std::numeric_limits<T>::is_iec559, "'cross' accepts only floating-point inputs");
+			GLM_STATIC_ASSERT(std::is_floating_point<T>::value, "'cross' accepts only floating-point inputs");
 
 			return v.x * u.y - u.x * v.y;
 		}

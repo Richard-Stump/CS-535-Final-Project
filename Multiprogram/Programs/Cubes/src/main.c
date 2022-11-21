@@ -335,7 +335,7 @@ void vu1_set_double_buffer_settings()
 	packet2_free(packet2);
 }
 
-void vu1_upload_micro_program()
+void vu1_micro_program()
 {
 	u32 packet_size =
 		packet2_utils_get_packet_size_for_program(&VU1Draw3D_CodeStart, &VU1Draw3D_CodeEnd) + 1; // + 1 for end tag

@@ -114,7 +114,7 @@ namespace detail
 	template<typename genType>
 	GLM_FUNC_QUALIFIER genType ceilMultiple(genType Source, genType Multiple)
 	{
-		return detail::compute_ceilMultiple<std::numeric_limits<genType>::is_iec559, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
+		return detail::compute_ceilMultiple<std::is_floating_point<genType>::value, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
 	}
 
 	template<length_t L, typename T, qualifier Q>
@@ -129,7 +129,7 @@ namespace detail
 	template<typename genType>
 	GLM_FUNC_QUALIFIER genType floorMultiple(genType Source, genType Multiple)
 	{
-		return detail::compute_floorMultiple<std::numeric_limits<genType>::is_iec559, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
+		return detail::compute_floorMultiple<std::is_floating_point<genType>::value, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
 	}
 
 	template<length_t L, typename T, qualifier Q>
@@ -144,7 +144,7 @@ namespace detail
 	template<typename genType>
 	GLM_FUNC_QUALIFIER genType roundMultiple(genType Source, genType Multiple)
 	{
-		return detail::compute_roundMultiple<std::numeric_limits<genType>::is_iec559, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
+		return detail::compute_roundMultiple<std::is_floating_point<genType>::value, std::numeric_limits<genType>::is_signed>::call(Source, Multiple);
 	}
 
 	template<length_t L, typename T, qualifier Q>

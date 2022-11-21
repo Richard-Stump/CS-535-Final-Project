@@ -13,23 +13,64 @@
 #include <sifrpc.h>
 #include <debug.h>
 #include <unistd.h>
+#include <graph.h>
+#include <time.h>
+
+#include <iostream>
+#include <fstream>
+
+#include <PS2Pad.hpp>
+
+#include "Mesh.hpp"
+#include "Ps2.hpp"
+
+#include "Application.hpp"
+
+#include <chrono>
+
+
+Application* app;
+
+void initialize()
+{
+  SifInitRpc(0);
+
+  initPs2();
+
+  app = new Application();
+}
+
 
 int main(int argc, char *argv[])
 {
-  SifInitRpc(0);
-  init_scr();
+  printf("Starting program\n");
 
-  scr_clear();
-  scr_printf("Hello, World!\n");
+  initialize();
 
-  // After 5 seconds, clear the screen.
-  sleep(10);
+  if(!app->initialize(640, 480)) {
+    std::cout << "Could not intialize application!" << std::endl;
+    return -1;
+  }
 
-  // Move cursor to 20, 20
-  scr_setXY(20, 20);
-  scr_printf("Hello Again, World!\n");
+  printf("Initialized!\n");
 
-  sleep(10);
+  clock_t prevTime = clock();
+
+  while(true) {
+    clock_t curTime = clock();
+    float deltaTime = float(curTime - prevTime) / CLOCKS_PER_SEC;
+
+    prevTime = curTime;
+
+    printf("update\n");
+    app->update(deltaTime);
+
+    //printf("update 2\n");
+    app->render();
+    ps2ClearScreen();
+  }
+
+  printf("Exiting Program");
 
   return 0;
 }
