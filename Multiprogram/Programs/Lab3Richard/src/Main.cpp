@@ -28,46 +28,64 @@
 
 #include <chrono>
 
+namespace draw = ps2;
 
 Application* app;
 
-void initialize()
+void drawTrianglesWireframe(
+	std::vector<glm::vec4> verts, 
+	glm::mat4& matTrans,
+	glm::vec4 color
+)
 {
-  SifInitRpc(0);
-
-  initPs2();
-
-  app = new Application();
+  draw::drawTrianglesWireframe(verts, matTrans, color);
 }
-
 
 int main(int argc, char *argv[])
 {
-  printf("Starting program\n");
+  std::cout << "Start of Lab3\n" << std::endl;
 
-  initialize();
-
-  if(!app->initialize(640, 480)) {
-    std::cout << "Could not intialize application!" << std::endl;
+  std::cout << "Allocating Application:\n";
+  app = new Application();
+  if(app == nullptr) {
+    std::cout << "    Could not allocate memory for application!\n" << std::endl;
     return -1;
   }
+  else
+    std::cout << "    Done!" << std::endl;
+
+  std::cout << "Initializing Drawing Environment:\n";
+  if(!draw::init()) {
+    std::cout << "    Could not initialize drawing environment!" << std::endl;
+    return -1;
+  }
+  else 
+    std::cout << "    Done!" << std::endl;
+
+  std::cout << "Initializing Application:\n";
+  if(!app->initialize(640, 512)) {
+    std::cout << "    Could not intialize application!" << std::endl;
+    return -1;
+  }
+  else
+    std::cout << "    Done!" << std::endl;
 
   printf("Initialized!\n");
 
   clock_t prevTime = clock();
-
   while(true) {
+    // Calculate the change in time since the previous frame
     clock_t curTime = clock();
     float deltaTime = float(curTime - prevTime) / CLOCKS_PER_SEC;
-
     prevTime = curTime;
-
-    printf("update\n");
+    
+    // Update the gamestate
     app->update(deltaTime);
 
-    //printf("update 2\n");
+    // Render
+    draw::startFrame();
     app->render();
-    ps2ClearScreen();
+    draw::endFrame();
   }
 
   printf("Exiting Program");

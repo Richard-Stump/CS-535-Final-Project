@@ -8,11 +8,11 @@
 
 # External libraries and headers for the program. The libcommon.a file does get
 # prefixed with -l since it is not in a library search path.
-EE_LIBS = ../../Common/libcommon.a -L$(GSKIT)/lib -L$(PS2SDK)/ports/lib -lSDL2main -lSDL2 -lps2_drivers -lgskit -ldmakit -lpad -lpatches -lstdc++ -ldma -lpacket -ldraw -lgraph -lpacket2 -ldebug  -lpadx -laudsrv
+EE_LIBS = ../../Common/libcommon.a -L$(GSKIT)/lib -lgskit -ldmakit -lpad -lpatches -lstdc++ -ldma -lpacket -ldraw -lgraph -lpacket2 -ldebug 
 EE_INCS = ../../Common/include -I./include -I$(PS2SDK)/ports/include  -I$(GSKIT)/include
 
 EE_BIN = ./out/LAB3_R.ELF
-EE_OBJS = ./src/Main.o ./src/UseSdl.o ./src/Mesh.o ./src/Application.o ./src/GameObject.o ./src/Ps2.o ./vu1/DrawLines.o
+EE_OBJS = ./src/Main.o ./src/Mesh.o ./src/Application.o ./src/GameObject.o ./src/Ps2.o ./vu1/DrawLines.o
 EE_DVP = dvp-as
 EE_VCL = ../../Tools/openvcl
 

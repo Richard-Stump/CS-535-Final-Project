@@ -76,11 +76,7 @@ private:
 
 	Player*							player;
 
-#if USE_SDL2
-	SDL_GameController* controller;
-#else
 	PS2Pad			pad;
-#endif
 
 	Mesh colliderMesh;
 	Mesh levelMesh;

@@ -27,7 +27,13 @@
 
 Application::Application()
 {
-	loadMeshes();
+
+}
+
+bool Application::initialize(int width, int height)
+{
+	resize(width, height);
+		loadMeshes();
 
 	player = new Player();
 	if(player == nullptr) {
@@ -51,17 +57,8 @@ Application::Application()
 				objects.push_back(new Powerup(sx, sy));
 		}
 	}
-}
 
-bool Application::initialize(int width, int height)
-{
-	resize(width, height);
-	
-#if USE_SDL2
-
-#else
-	// pad.init(0,0);
-#endif
+	pad.init(0,0);
 
 	return true;
 }
@@ -69,16 +66,16 @@ bool Application::initialize(int width, int height)
 void Application::updateInput() {
 #if USE_SDL2
 #else
-	// pad.b_read();
+	pad.b_read();
 
-	// inputState.moveBackward = pad.held(PAD_DOWN);
-	// inputState.moveForward = pad.held(PAD_UP);
-	// inputState.moveLeft = pad.held(PAD_LEFT);
-	// inputState.moveRight = pad.held(PAD_RIGHT);
-	// inputState.turnLeft = pad.held(PAD_SQUARE);
-	// inputState.turnRight = pad.held(PAD_CIRCLE);
+	inputState.moveBackward = pad.held(PAD_DOWN);
+	inputState.moveForward = pad.held(PAD_UP);
+	inputState.moveLeft = pad.held(PAD_LEFT);
+	inputState.moveRight = pad.held(PAD_RIGHT);
+	inputState.turnLeft = pad.held(PAD_SQUARE);
+	inputState.turnRight = pad.held(PAD_CIRCLE);
 
-	// inputState.shoot = pad.held(PAD_CROSS);
+	inputState.shoot = pad.held(PAD_CROSS);
 #endif
 }
 

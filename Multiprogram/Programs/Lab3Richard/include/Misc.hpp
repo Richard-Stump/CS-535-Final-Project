@@ -3,7 +3,7 @@
 
 #define USE_SDL2 0
 
-#define RENDER_TEST 0
+#define RENDER_TEST 1
 
 struct InputState
 {

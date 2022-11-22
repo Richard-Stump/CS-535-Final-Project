@@ -36,27 +36,35 @@ void Player::update(float deltaTime, InputState inputState)
 
 	shootTimer -= deltaTime;
 
-	if (inputState.turnLeft)
+	if (inputState.turnLeft) {
+		std::cout << "turn left" << std::endl;
 		heading -= turnAmount;
-	if (inputState.turnRight)
+	}
+	if (inputState.turnRight) {
+		std::cout << "turn right" << std::endl;
 		heading += turnAmount;
+	}
 
 	double cos = glm::cos(heading);
 	double sin = glm::sin(heading);
 
 	if (inputState.moveForward) {
+		std::cout << "move forward" << std::endl;
 		newPos.x += moveAmount * cos;
 		newPos.z += moveAmount * sin;
 	}
 	if (inputState.moveBackward) {
+		std::cout << "move backward" << std::endl;
 		newPos.x -= moveAmount * cos;
 		newPos.z -= moveAmount * sin;
 	}
 	if (inputState.moveLeft) {
+		std::cout << "move left" << std::endl;
 		newPos.x += moveAmount * sin;
 		newPos.z -= moveAmount * cos;
 	}
 	if (inputState.moveRight) {
+		std::cout << "move right" << std::endl;
 		newPos.x -= moveAmount * sin;
 		newPos.z += moveAmount * cos;
 	}

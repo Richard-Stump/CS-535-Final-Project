@@ -9,9 +9,16 @@
 #define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
 #include <glm/glm.hpp>
 
-void initPs2();
-void ps2ClearScreen();
-void ps2DrawTrianglesWireframe(
-    std::vector<glm::vec4> verts, 
-    glm::mat4& matTrans,
-    glm::vec4 color);
+namespace ps2 {
+    bool init();
+    void close();
+
+    void startFrame();
+    void endFrame();  
+
+    void drawTrianglesWireframe(
+        std::vector<glm::vec4> verts, 
+        glm::mat4& matTrans,
+        glm::vec4 color
+    );
+} // namespace ps2

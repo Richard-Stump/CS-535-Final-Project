@@ -1,10 +1,7 @@
 #include "Ps2.hpp"
 
 #include <stdio.h>
-#include <tamtypes.h>
-#include <dma.h>
-#include <packet2.h>
-#include <packet2_utils.h>
+#include <iostream>
 
 #include <kernel.h>
 #include <malloc.h>
@@ -13,142 +10,108 @@
 #include <dma.h>
 #include <packet2.h>
 #include <packet2_utils.h>
-#include <packet2_vif.h>
-#include <packet2_types.h>
 #include <graph.h>
 #include <draw.h>
+#include <vif_codes.h>
 
-#include <vector>
+namespace ps2 {
 
-#define GLM_FORCE_ALIGNED_GENTYPES
-#define GLM_FORCE_DEFAULT_ALIGNED_GENTYPES
-#include <glm/glm.hpp>
-#include <glm/gtc/type_ptr.hpp>
+static const char* 		magic = "SZDJLKJGFLKjGKL MEsS UP THE CRC\n";
+static framebuffer_t	framebuffer;
+static zbuffer_t		zbuffer;
 
-#include "Misc.hpp"
-#if USE_SDL2 
-	#include <SDL2/SDL.h>
-	#include "UseSdl.hpp"
-#endif//USE_SDL2
+static void initGs() {
+	std::cout << "    Setting up framebuffer" << std::endl;
+	// Intialize the framebuffer
+	framebuffer.width = 640;
+	framebuffer.height = 512;
+	framebuffer.mask = 0;
+	framebuffer.psm = GS_PSM_32;
+	framebuffer.address = graph_vram_allocate(
+		framebuffer.width,
+		framebuffer.height,
+		framebuffer.psm,
+		GRAPH_ALIGN_PAGE
+	);
 
-extern "C" {
-    extern u32 VU1DrawLines_CodeStart __attribute__((section(".vudata")));
-    extern u32 VU1DrawLines_CodeEnd __attribute__((section(".vudata")));
+	std::cout << "    Setting up zbuffer" << std::endl;
+	zbuffer.enable = DRAW_ENABLE;
+	zbuffer.mask = 0;
+	zbuffer.method = ZTEST_METHOD_GREATER;
+	zbuffer.zsm = GS_ZBUF_32;
+	zbuffer.address = graph_vram_allocate(
+		framebuffer.width, 
+		framebuffer.height, 
+		zbuffer.zsm, 
+		GRAPH_ALIGN_PAGE
+	);
+
+	std::cout << "    initializing graph" << std::endl;
+	graph_initialize(
+		framebuffer.address, 
+		framebuffer.width, 
+		framebuffer.height, 
+		framebuffer.psm, 
+		0, 
+		0
+	);
 }
 
-namespace globals
+static void initDrawingEnvironment()
 {
-	framebuffer_t 	framebuffer;
-	zbuffer_t 		zbuffer;
-
-	packet2_t* 		vu1Packets[2] __attribute__((aligned(64)));
-	packet2_t*		curVu1Packet __attribute__((aligned(64)));
-	u32				curVu1PacketIdx;
-
-	packet2_t* 		gifPacket;
-
-	packet2_t* 		gsPacket;
-
-	prim_t 			primitive;
-}
-
-void uploadProgram()
-{
-    printf("Uplaoding microprogram to vu1");
-
-    u32 packet_size =
-		packet2_utils_get_packet_size_for_program(&VU1DrawLines_CodeStart, &VU1DrawLines_CodeEnd) + 1; // + 1 for end tag
-	packet2_t *packet2 = packet2_create(packet_size, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-	packet2_vif_add_micro_program(packet2, 0, &VU1DrawLines_CodeStart, &VU1DrawLines_CodeEnd);
-	packet2_utils_vu_add_end_tag(packet2);
-	dma_channel_send_packet2(packet2, DMA_CHANNEL_VIF1, 1);
-	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-	packet2_free(packet2);
-
-    printf("        Done!\n");
-}
-
-/** Some initialization of GS and VRAM allocation */
-void init_gs(framebuffer_t *t_frame, zbuffer_t *t_z)
-{
-	// Define a 32-bit 640x512 framebuffer.
-	t_frame->width = 640;
-	t_frame->height = 512;
-	t_frame->mask = 0;
-	t_frame->psm = GS_PSM_32;
-	t_frame->address = graph_vram_allocate(t_frame->width, t_frame->height, t_frame->psm, GRAPH_ALIGN_PAGE);
-
-	// Enable the zbuffer.
-	t_z->enable = DRAW_ENABLE;
-	t_z->mask = 0;
-	t_z->method = ZTEST_METHOD_GREATER_EQUAL;
-	t_z->zsm = GS_ZBUF_32;
-	t_z->address = graph_vram_allocate(t_frame->width, t_frame->height, t_z->zsm, GRAPH_ALIGN_PAGE);
-
-	// Initialize the screen and tie the first framebuffer to the read circuits.
-	graph_initialize(t_frame->address, t_frame->width, t_frame->height, t_frame->psm, 0, 0);
-}
-
-/** Some initialization of GS 2 */
-void init_drawing_environment(framebuffer_t *t_frame, zbuffer_t *t_z)
-{
-	packet2_t *packet2 = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+	std::cout << "    Creating packet" << std::endl;
+	packet2_t *packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
 	// This will setup a default drawing environment.
-	packet2_update(packet2, draw_setup_environment(packet2->next, 0, t_frame, t_z));
+	std::cout << "        Adding draw_setup_env()" << std::endl;
+	packet2_update(
+		packet, 
+		draw_setup_environment(packet->next, 0, &framebuffer, &zbuffer)
+	);
 
 	// Now reset the primitive origin to 2048-width/2,2048-height/2.
-	packet2_update(packet2, draw_primitive_xyoffset(packet2->next, 0, (2048 - 320), (2048 - 256)));
+	std::cout << "        Adding primitive offset" << std::endl;
+	packet2_update(
+		packet, 
+		draw_primitive_xyoffset(packet->next, 0, (2048 - 320), (2048 - 256))
+	);
 
 	// Finish setting up the environment.
-	packet2_update(packet2, draw_finish(packet2->next));
+	std::cout << "        Adding finish tag" << std::endl;
+	packet2_update(packet, draw_finish(packet->next));
 
 	// Now send the packet, no need to wait since it's the first.
-	dma_channel_send_packet2(packet2, DMA_CHANNEL_GIF, 1);
-	dma_wait_fast();
+	std::cout << "        Sending packet" << std::endl;
+	dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
 
-	packet2_free(packet2);
+	std::cout << "        Waiting on packet" << std::endl;
+	dma_channel_wait(DMA_CHANNEL_GIF, 0);
+
+	std::cout << "        Done!" << std::endl;
+	packet2_free(packet);
 }
 
-void vu1_set_double_buffer_settings()
+static void clearScreen()
 {
-	packet2_t *packet2 = packet2_create(1, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-	packet2_utils_vu_add_double_buffer(packet2, 0, 512);
-	packet2_utils_vu_add_end_tag(packet2);
-	dma_channel_send_packet2(packet2, DMA_CHANNEL_VIF1, 1);
-	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-	packet2_free(packet2);
-}
-
-void initPrimitive()
-{
-	using globals::primitive;
-
-	primitive.type = PRIM_TRIANGLE;
-	primitive.shading = PRIM_SHADE_FLAT;
-	primitive.mapping = DRAW_DISABLE;
-	primitive.fogging = DRAW_DISABLE;
-	primitive.antialiasing = DRAW_DISABLE;
-	primitive.colorfix = PRIM_UNFIXED;
-	primitive.blending = DRAW_DISABLE;
-	primitive.mapping_type = PRIM_MAP_ST;
-}
-
-/** Send packet which will clear our screen. */
-void clear_screen(framebuffer_t *frame, zbuffer_t *z)
-{
-    graph_wait_vsync();
-
-	packet2_t *clear = packet2_create(35, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
-
-	// Clear framebuffer but don't update zbuffer.
-	packet2_update(clear, draw_disable_tests(clear->next, 0, z));
-	packet2_update(clear, draw_clear(clear->next, 0, 2048.0f - 320.0f, 2048.0f - 256.0f, frame->width, frame->height, 0x10, 0x10, 0x10));
-	packet2_update(clear, draw_enable_tests(clear->next, 0, z));
+	packet2_t* clear = packet2_create(35, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+	
+	packet2_update(clear, draw_disable_tests(clear->next, 0, &zbuffer));
+	packet2_update(clear, draw_clear(
+		clear->next, 0, 
+		2048.0f - 320.0f, 
+		2048.0f - 256.0f, 
+		framebuffer.width, 
+		framebuffer.height, 
+		32,
+		32,
+		32
+	));
+	packet2_update(clear, draw_enable_tests(clear->next, 0, &zbuffer));
 	packet2_update(clear, draw_finish(clear->next));
-
+	
 	// Now send our current dma chain.
-	dma_wait_fast();
+	dma_channel_wait(DMA_CHANNEL_GIF, 0);
+	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
 	dma_channel_send_packet2(clear, DMA_CHANNEL_GIF, 1);
 
 	packet2_free(clear);
@@ -157,199 +120,126 @@ void clear_screen(framebuffer_t *frame, zbuffer_t *z)
 	draw_wait_finish();
 }
 
-void ps2ClearScreen()
-{
-#if USE_SDL2
-	SdlClearScreen();
-#else
-	clear_screen(&globals::framebuffer, &globals::zbuffer);
-#endif//USE_SDL2
-}
+bool init()
+{	
+	std::cout << "    Environment: GS path 3" << std::endl;
 
-void swapPackets() {
-	globals::curVu1PacketIdx = globals::curVu1PacketIdx == 0 ? 1 : 0;
-	globals::curVu1Packet = globals::vu1Packets[globals::curVu1PacketIdx];
-}
-
-void calculateGifPacket(s32 vertCount, MATRIX matrix) 
-{
-	using globals::gifPacket;
-	using globals::primitive;
-
-	packet2_reset(gifPacket, 0);
-
-	packet2_add_float(gifPacket, 2048.0f);
-	packet2_add_float(gifPacket, 2048.0f);
-	packet2_add_float(gifPacket, ((float)0xFFFFFF) / 32.0F);
-	packet2_add_s32(gifPacket, vertCount);
-
-	packet2_add_u32(gifPacket, 0xFFFFFFFF);
-	packet2_add_u32(gifPacket, 0xFFFFFFFF);
-	packet2_add_u32(gifPacket, 0xFFFFFFFF);
-	packet2_add_u32(gifPacket, 0xFFFFFFFF);
-	
-	packet2_add_float(gifPacket, matrix[0]);
-	packet2_add_float(gifPacket, matrix[1]);
-	packet2_add_float(gifPacket, matrix[2]);
-	packet2_add_float(gifPacket, matrix[3]);
-
-	packet2_add_float(gifPacket, matrix[4]);
-	packet2_add_float(gifPacket, matrix[5]);
-	packet2_add_float(gifPacket, matrix[6]);
-	packet2_add_float(gifPacket, matrix[7]);
-	
-	packet2_add_float(gifPacket, matrix[8]);
-	packet2_add_float(gifPacket, matrix[9]);
-	packet2_add_float(gifPacket, matrix[10]);
-	packet2_add_float(gifPacket, matrix[11]);
-
-	packet2_add_float(gifPacket, matrix[12]);
-	packet2_add_float(gifPacket, matrix[13]);
-	packet2_add_float(gifPacket, matrix[14]);
-	packet2_add_float(gifPacket, matrix[15]);
-
-	packet2_utils_gif_add_set(gifPacket, 1);
-	packet2_utils_gs_add_prim_giftag(gifPacket, &primitive, vertCount, DRAW_RGBAQ_REGLIST, 2, 0);
-}
-
-void drawTrianglesWireframeVu1(
-    std::vector<glm::vec4> verts, 
-    glm::mat4& matTrans,
-    glm::vec4 color
-)
-{
-	using globals::gifPacket;
-
-	static MATRIX localMatrix;
-
-	packet2_t* packet __attribute__((aligned(64))) = globals::curVu1Packet;
-	if(packet == nullptr) {
-		printf("PACKET IS NULL!\n");
-	}
-
-	float* matData = glm::value_ptr(matTrans);
-	for(int i = 0; i < 16; i++) 
-		localMatrix[i] = matData[i];
-
-	packet2_reset(packet, 0);
-
-	// Construct a gif packet that vu1 will use to send the transformed geometry
-	// to the GS
-	s32 vert_count = verts.size();
-	calculateGifPacket(vert_count, localMatrix);
-	u32 gifSize = packet2_get_qw_count(gifPacket);
-
-	u32 addedQwords = 0;
-	packet2_utils_vu_add_unpack_data(packet, addedQwords, gifPacket->base, gifSize, 1);
-	addedQwords += gifSize;
-
-	packet2_utils_vu_add_unpack_data(packet, addedQwords, (void*)verts.data(), vert_count, 1);
-	addedQwords += vert_count;
-
-	packet2_utils_vu_add_start_program(packet, 0);
-	packet2_utils_vu_add_end_tag(packet);
-
-	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-	dma_channel_send_packet2(packet, DMA_CHANNEL_VIF1, 1);
-
-	// Swap the current vu1 packet
-	swapPackets();
-
-	printf("Swapped packets. \n     vcount = %d\n"
-		   "    gifSize = %d\n     totsize = %d\n"
-		   "    addedQwords = %d\n",
-	vert_count, gifSize, packet2_get_qw_count(packet),
-	addedQwords
-
-	);
-}
-
-void drawTrianglesWireframeEE(
-    std::vector<glm::vec4> verts, 
-    glm::mat4& matTrans,
-    glm::vec4 color
-)
-{
-	using globals::primitive;
-
-	packet2_t* packet = globals::gsPacket;
-
-	packet2_reset(packet, 0);
-	packet2_utils_gif_add_set(packet, 0);
-	packet2_utils_gs_add_prim_giftag(packet, &primitive, verts.size(), DRAW_RGBAQ_REGLIST, 2, 0);
-
-	for(size_t i = 0; i < verts.size(); i++) {
-		printf("     Adding vertex %d\n", i);
-
-		glm::vec4 vertex = verts[i];
-
-		// Transform the vertex
-		vertex = vertex * matTrans;	// Normal transformation matrix
-		vertex = vertex / vertex.w;	// Perspective divide
-
-		// Transform the vertex into the GS viewport
-		vertex.x = (1.0f + vertex.x) * 2048.0f;
-		vertex.y = (1.0f + vertex.y) * 2048.0f;
-		vertex.z = (1.0f + vertex.z) * ((float)0xFFFFFF) / 32.0f;
-
-		// Add the vertex to the draw list
-		xyz_t gsPos;
-		gsPos.x = ftoi4(vertex.x);
-		gsPos.y = ftoi4(vertex.y);
-		gsPos.z = ftoi4(vertex.z);
-
-		color_t gsColor;
-		gsColor.r = 255;
-		gsColor.g = 255;
-		gsColor.b = 255;
-		gsColor.a = 255;
-		gsColor.q = 1.0f;
-		
-		packet2_add_2x_s64(packet, gsColor.rgbaq, gsPos.xyz);
-	}
-
-	// Kick the vertices to the GS
-	dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
-	dma_channel_wait(DMA_CHANNEL_GIF, 0);
-
-	printf("Dma Packet Sent\n");
-}
-
-void ps2DrawTrianglesWireframe(
-    std::vector<glm::vec4> verts, 
-    glm::mat4& matTrans,
-    glm::vec4 color)
-{
-#if USE_SDL2
-	drawTrianglesSDL(verts, matTrans, color);
-#else
-	drawTrianglesWireframeEE(verts, matTrans, color);
-#endif
-}
-
-void initPs2()
-{
-#if USE_SDL2
-	initSdl();
-#else
 	dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
 	dma_channel_initialize(DMA_CHANNEL_VIF1, NULL, 0);
 	dma_channel_fast_waits(DMA_CHANNEL_GIF);
 	dma_channel_fast_waits(DMA_CHANNEL_VIF1);
 
-	globals::gsPacket = packet2_create(1024, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-	globals::vu1Packets[0] = packet2_create(512, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-	globals::vu1Packets[1] = packet2_create(512, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-	globals::curVu1PacketIdx = 0;
-	globals::curVu1Packet = globals::vu1Packets[globals::curVu1PacketIdx];
-	globals::gifPacket = packet2_create(8, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+	initGs();
+	initDrawingEnvironment();
 
-    uploadProgram();
-	vu1_set_double_buffer_settings();
-
-	init_gs(&globals::framebuffer, &globals::zbuffer);
-	init_drawing_environment(&globals::framebuffer, &globals::zbuffer);
-	initPrimitive();
-#endif//USE_SDL2
+	std::cout << "    Finished Intializing" << std::endl;
+	return true;
 }
 
+
+void close()
+{
+
+}
+
+// Called at the start of the frame. This does things like clear the screen,
+// and other stuff.
+void startFrame()
+{
+	std::cout << "Start of frame" << std::endl;
+	clearScreen();
+}
+
+// Called at the end of the frame. This does things like
+void endFrame()
+{
+	std::cout << "    End of frame" << std::endl;
+	graph_wait_vsync();
+}
+
+inline void addPrimitive(packet2_t* packet)
+{
+	prim_t prim;
+	prim.type = PRIM_LINE_STRIP;
+	prim.shading = PRIM_SHADE_GOURAUD;
+	prim.mapping = false;
+	prim.fogging = false;
+	prim.blending = false;
+	prim.antialiasing = false;
+	prim.mapping_type = PRIM_MAP_ST;
+	prim.colorfix = PRIM_UNFIXED;
+
+	// Add a new primitive tag to the packet. Since we are rendering in line
+	// 
+	packet2_utils_gs_add_prim_giftag(
+		packet,
+		&prim,
+		1,								// We only have one loop
+		((GIF_REG_RGBAQ & 0xF) << 0) |
+		((GIF_REG_XYZ2 & 0xF) << 4),
+		8,								// 4 vertices * 2 registers (rgba, xyz2)
+		0	
+	);
+}
+
+inline void addVertex(packet2_t* packet, glm::vec4 pos, glm::vec4 color)
+{
+	packet2_add_u32(packet, (u8)(color.r * 255.0f));
+	packet2_add_u32(packet, (u8)(color.g * 255.0f));
+	packet2_add_u32(packet, (u8)(color.b * 255.0f));
+	packet2_add_u32(packet, (u8)(color.a * 255.0f));
+
+	packet2_add_u32(packet, ftoi4(pos.x));
+	packet2_add_u32(packet, ftoi4(pos.y));
+	packet2_add_u32(packet, ftoi4(pos.z));
+	packet2_add_u32(packet, ftoi4(pos.w));
+}
+
+void drawTrianglesWireframe(
+	std::vector<glm::vec4> verts, 
+	glm::mat4& matTrans,
+	glm::vec4 color
+){
+	std::cout << "    Creating packet to send model to GS" << std::endl;
+
+	// Open a packet in direct mode since we are rendering through path2
+	packet2_t* packet = packet2_create(512, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+	packet2_pad96(packet, 0);
+	packet2_vif_open_direct(packet, 0);
+
+	std::cout << "    Adding the vertex data" << std::endl;
+	// Now we build our gif tags containing the vertex data.
+	for(int i = 0; i < verts.size(); i += 3) {
+		glm::vec4 v1 = verts[i];
+		glm::vec4 v2 = verts[i + 1];
+		glm::vec4 v3 = verts[i + 2];
+
+		// Add then to our packet. v1 gets added to the end since we are trying
+		// to build a line-loop
+		addPrimitive(packet);
+		addVertex(packet, v1, color);
+		addVertex(packet, v2, color);
+		addVertex(packet, v3, color);
+		addVertex(packet, v1, color);
+	}
+
+
+	// We are done adding our gif tags, so we have to close the direct mode
+	// before doing anything else with the packet. This automatically counts
+	// the size of the direct data for us.
+	std::cout << "    Closing the VIF direct mode" << std::endl;
+	packet2_vif_close_direct_auto(packet);
+
+	// Send it
+	std::cout << "    Waiting on VIF" << std::endl;
+	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+	std::cout << "    Sending" << std::endl;
+	dma_channel_send_packet2(packet, DMA_CHANNEL_VIF1, 1);
+	std::cout << "    Waiting on VIF" << std::endl;
+	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+
+	std::cout << "    Done" << std::endl;
+	packet2_free(packet);
+}
+
+} // namespace ps2

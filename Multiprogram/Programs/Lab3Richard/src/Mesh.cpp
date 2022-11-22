@@ -124,8 +124,13 @@ void Mesh::loadMeshData(
 	}
 }
 
+extern void drawTrianglesWireframe(
+	std::vector<glm::vec4> verts, 
+	glm::mat4& matTrans,
+	glm::vec4 color);
+
 void Mesh::draw(glm::mat4& matTrans, glm::vec3 color)
 {
 	glm::vec4 c{color.r, color.g, color.b, 1.0f};
-	ps2DrawTrianglesWireframe(verts, matTrans, c);
+	drawTrianglesWireframe(verts, matTrans, c);
 }
