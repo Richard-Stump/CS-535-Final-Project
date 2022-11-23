@@ -14,15 +14,15 @@
 #include <draw.h>
 #include <vif_codes.h>
 
+framebuffer_t	framebuffer;
+zbuffer_t		zbuffer;
+
 namespace ps2 {
 
-static const char* 		magic = "SZDJLKJGFLKjGKL MEsS UP THE CRC\n";
-static framebuffer_t	framebuffer;
-static zbuffer_t		zbuffer;
 
-static void initGs() {
-	std::cout << "    Setting up framebuffer" << std::endl;
-	// Intialize the framebuffer
+void initGs() 
+{
+	std::cout << "    Allocating framebuffer" << std::endl;
 	framebuffer.width = 640;
 	framebuffer.height = 512;
 	framebuffer.mask = 0;
@@ -34,106 +34,73 @@ static void initGs() {
 		GRAPH_ALIGN_PAGE
 	);
 
-	std::cout << "    Setting up zbuffer" << std::endl;
-	zbuffer.enable = DRAW_ENABLE;
-	zbuffer.mask = 0;
-	zbuffer.method = ZTEST_METHOD_GREATER;
-	zbuffer.zsm = GS_ZBUF_32;
+	std::cout << "    Allocating z buffer" << std::endl;
+	zbuffer.enable 	= DRAW_ENABLE;
+	zbuffer.mask	= 0;
+	zbuffer.method	= ZTEST_METHOD_GREATER_EQUAL;
+	zbuffer.zsm		= GS_ZBUF_32;
 	zbuffer.address = graph_vram_allocate(
-		framebuffer.width, 
-		framebuffer.height, 
-		zbuffer.zsm, 
+		framebuffer.width,
+		framebuffer.height,
+		zbuffer.zsm,
 		GRAPH_ALIGN_PAGE
 	);
 
-	std::cout << "    initializing graph" << std::endl;
+	std::cout << "    graph_initialize()" << std::endl;
 	graph_initialize(
-		framebuffer.address, 
-		framebuffer.width, 
-		framebuffer.height, 
-		framebuffer.psm, 
-		0, 
+		framebuffer.address,
+		framebuffer.width,
+		framebuffer.height,
+		framebuffer.psm,
+		0,
 		0
 	);
+
 }
 
-static void initDrawingEnvironment()
+void initDrawingEnvironment()
 {
-	std::cout << "    Creating packet" << std::endl;
-	packet2_t *packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+	packet2_t* packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
 
-	// This will setup a default drawing environment.
-	std::cout << "        Adding draw_setup_env()" << std::endl;
 	packet2_update(
-		packet, 
+		packet,
 		draw_setup_environment(packet->next, 0, &framebuffer, &zbuffer)
 	);
-
-	// Now reset the primitive origin to 2048-width/2,2048-height/2.
-	std::cout << "        Adding primitive offset" << std::endl;
 	packet2_update(
-		packet, 
+		packet,
 		draw_primitive_xyoffset(packet->next, 0, (2048 - 320), (2048 - 256))
 	);
 
-	// Finish setting up the environment.
-	std::cout << "        Adding finish tag" << std::endl;
 	packet2_update(packet, draw_finish(packet->next));
 
-	// Now send the packet, no need to wait since it's the first.
-	std::cout << "        Sending packet" << std::endl;
+	dma_wait_fast();
 	dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
 
-	std::cout << "        Waiting on packet" << std::endl;
-	dma_channel_wait(DMA_CHANNEL_GIF, 0);
-
-	std::cout << "        Done!" << std::endl;
 	packet2_free(packet);
 }
 
-static void clearScreen()
+void clearScreen()
 {
-	packet2_t* clear = packet2_create(35, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
-	
-	packet2_update(clear, draw_disable_tests(clear->next, 0, &zbuffer));
-	packet2_update(clear, draw_clear(
-		clear->next, 0, 
-		2048.0f - 320.0f, 
-		2048.0f - 256.0f, 
-		framebuffer.width, 
-		framebuffer.height, 
-		32,
-		32,
-		32
-	));
-	packet2_update(clear, draw_enable_tests(clear->next, 0, &zbuffer));
-	packet2_update(clear, draw_finish(clear->next));
-	
-	// Now send our current dma chain.
-	dma_channel_wait(DMA_CHANNEL_GIF, 0);
-	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-	dma_channel_send_packet2(clear, DMA_CHANNEL_GIF, 1);
 
-	packet2_free(clear);
-
-	// Wait for scene to finish drawing
-	draw_wait_finish();
 }
 
 bool init()
-{	
-	std::cout << "    Environment: GS path 3" << std::endl;
+{
+	std::cout << "    Drawing environment: PS2 path2" << std::endl;
 
-	dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
-	dma_channel_initialize(DMA_CHANNEL_VIF1, NULL, 0);
+	// Init DMA channels.
+	dma_channel_initialize(DMA_CHANNEL_GIF, nullptr, 0);
+	dma_channel_initialize(DMA_CHANNEL_VIF1, nullptr, 0);
 	dma_channel_fast_waits(DMA_CHANNEL_GIF);
 	dma_channel_fast_waits(DMA_CHANNEL_VIF1);
 
+	// Init the GS, framebuffer, zbuffer, and texture buffer.
 	initGs();
+
+	// Init the drawing environment and framebuffer.
 	initDrawingEnvironment();
 
-	std::cout << "    Finished Intializing" << std::endl;
-	return true;
+	std::cout << "    Done!" << std::endl;
 }
 
 

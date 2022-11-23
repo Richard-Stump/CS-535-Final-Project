@@ -45,6 +45,14 @@ int main(int argc, char *argv[])
 {
   std::cout << "Start of Lab3\n" << std::endl;
 
+  std::cout << "Initializing Drawing Environment:\n";
+  if(!draw::init()) {
+    std::cout << "    Could not initialize drawing environment!" << std::endl;
+    return -1;
+  }
+  else 
+    std::cout << "    Done!" << std::endl;
+    
   std::cout << "Allocating Application:\n";
   app = new Application();
   if(app == nullptr) {
@@ -54,13 +62,6 @@ int main(int argc, char *argv[])
   else
     std::cout << "    Done!" << std::endl;
 
-  std::cout << "Initializing Drawing Environment:\n";
-  if(!draw::init()) {
-    std::cout << "    Could not initialize drawing environment!" << std::endl;
-    return -1;
-  }
-  else 
-    std::cout << "    Done!" << std::endl;
 
   std::cout << "Initializing Application:\n";
   if(!app->initialize(640, 512)) {
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
   clock_t prevTime = clock();
   while(true) {
     // Calculate the change in time since the previous frame
+    std::cout << "Update" << std::endl;
     clock_t curTime = clock();
     float deltaTime = float(curTime - prevTime) / CLOCKS_PER_SEC;
     prevTime = curTime;

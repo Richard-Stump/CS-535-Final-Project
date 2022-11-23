@@ -361,7 +361,7 @@ int main(int argc, char *argv[])
 	vif_packets[0] = packet2_create(11, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
 	vif_packets[1] = packet2_create(11, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
 
-	vu1_upload_micro_program();
+	vu1_micro_program();
 	vu1_set_double_buffer_settings();
 
 	// The buffers to be used.
