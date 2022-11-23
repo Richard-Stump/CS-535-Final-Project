@@ -54,12 +54,84 @@ void endFrame()
     graph_wait_vsync();
 }
 
+inline void addPrimitive(packet2_t* packet)
+{
+    // Add the tag for the primitive
+    packet2_add_u64(packet,
+        GIF_SET_TAG(
+            3,                          // Number of loop
+            1,                          // End of packet
+            1,                          // Primitive Enable
+            GIF_SET_PRIM(          
+                GIF_PRIM_TRIANGLE,      // Primitive Enable
+                1,                      // Shading: 0 = flat, 1 = goroud
+                0,                      // Texture mapping enable
+                0,                      // Fog enable
+                0,                      // Alpha blend enable
+                0,                      // Antialias enable
+                0,                      // Texture Map type: 0=stq, 1=uv
+                0,                      // Context number
+                0                       // Fix fragment value
+            ),
+            GIF_FLG_PACKED,             // Data format
+            2                           // Number of registers per loop
+        )
+    );
+
+    packet2_add_u64(
+        packet,
+        (GIF_REG_RGBAQ & 0xF) << 0 |
+        (GIF_REG_XYZ2 & 0xF) << 4
+    );  
+}
+
+inline void addVertex(packet2_t* packet, glm::vec4 pos, glm::vec4 color)
+{
+    packet2_add_u32(packet, 255);   // R
+    packet2_add_u32(packet, 0);     // G
+    packet2_add_u32(packet, 0);     // B
+    packet2_add_u32(packet, 255);   // A
+
+    packet2_add_u32(packet, ftoi4(pos.x));
+    packet2_add_u32(packet, ftoi4(pos.y));
+    packet2_add_u32(packet, ftoi4(pos.z));
+    packet2_add_u32(packet, 0x00);
+}
+
 void drawTrianglesWireframe(
 	std::vector<glm::vec4> verts, 
 	glm::mat4& matTrans,
 	glm::vec4 color
 ) {
     printf("        Draw TRI\n");
+
+    packet2_t* packet = packet2_create(512, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+
+    // Start the packet in direct mode. this is necessary since we are rending
+    // over path2.
+    packet2_pad96(packet, 0);
+    packet2_vif_flush(packet, 0);
+    packet2_pad96(packet, 0);
+    packet2_vif_open_direct(packet, 0);
+    
+    addPrimitive(packet);
+    addVertex(packet, glm::vec4{-1024.0f, 0.0f, -1.0f, 0.0f}, glm::vec4());
+    addVertex(packet, glm::vec4{ 1024.0f, 0.0f, -1.0f, 0.0f}, glm::vec4());
+    addVertex(packet, glm::vec4{ 0.0f, 1024.0f, -1.0f, 0.0f}, glm::vec4());
+
+    // Close the direct mode. This will automatically count the number of qwords
+    // added for us and construct the VIF command to pass the data to the GIF
+    packet2_vif_close_direct_auto(packet);
+    
+    packet2_utils_vu_add_end_tag(packet);
+
+    printf("                    Waiting on DMA\n");
+    dma_channel_wait(DMA_CHANNEL_GIF, 0);
+	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
+    printf("                    Sending Tri\n");
+    dma_channel_send_packet2(packet, DMA_CHANNEL_VIF1, 1);
+
+    packet2_free(packet);
 }
 //==============================================================================
 // Initialization code
