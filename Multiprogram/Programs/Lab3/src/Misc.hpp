@@ -1,7 +1,7 @@
 #ifndef MISC_HPP_INCLUDED
 #define MISC_HPP_INCLUDED
 
-#define RENDER_TEST 1
+#define RENDER_TEST 0
 
 struct InputState
 {

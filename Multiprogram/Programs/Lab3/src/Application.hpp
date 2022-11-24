@@ -72,6 +72,8 @@ private:
 
 	Player*							player;
 
+	PS2Pad* pad;
+
 	Mesh colliderMesh;
 	Mesh levelMesh;
 	Mesh triMesh;

@@ -58,25 +58,25 @@ bool Application::initialize(int width, int height)
 		}
 	}
 
-	//pad.init(0,0);
+	pad = new PS2Pad;
+	pad->init(0,0);
 
 	return true;
 }
 
 void Application::updateInput() {
 
-#if 0
-	pad.b_read();
+	pad->read();
+	pad->b_read();
 
-	inputState.moveBackward = pad.held(PAD_DOWN);
-	inputState.moveForward = pad.held(PAD_UP);
-	inputState.moveLeft = pad.held(PAD_LEFT);
-	inputState.moveRight = pad.held(PAD_RIGHT);
-	inputState.turnLeft = pad.held(PAD_SQUARE);
-	inputState.turnRight = pad.held(PAD_CIRCLE);
+	inputState.moveBackward = pad->held(PAD_DOWN);
+	inputState.moveForward = pad->held(PAD_UP);
+	inputState.moveLeft = pad->held(PAD_LEFT);
+	inputState.moveRight = pad->held(PAD_RIGHT);
+	inputState.turnLeft = pad->held(PAD_SQUARE);
+	inputState.turnRight = pad->held(PAD_CIRCLE);
 
-	inputState.shoot = pad.held(PAD_CROSS);
-#endif
+	inputState.shoot = pad->held(PAD_CROSS);
 }
 
 bool Application::update(float deltaTime)
@@ -178,7 +178,7 @@ void Application::render()
 #else
 
 	/* Currently the level mesh is too large to render */
-	//levelMesh.draw(matProjView, glm::vec3{1, 1, 1});
+	levelMesh.draw(matProjView, glm::vec3{1, 1, 1});
 
 	/* The collider mesh is too large to render */
 	//if (renderDebugSpheres)
@@ -223,11 +223,21 @@ void Application::renderObjects(glm::mat4& matProjView)
 
 	int renderCount = 0;
 	for (GameObject* object : objects) {
-		printf("Rendering %s\n", object->type().c_str());
+		//printf("Rendering %s\n", object->type().c_str());
 
 		// The player doesn't get rendered
 		if (object->type() == player->type())
 			continue;
+
+
+		float pHead = player->getHeading();
+		glm::vec3 pDir{
+			glm::cos(pHead), 0.0f, glm::sin(pHead)
+		};
+
+		if(glm::dot(pDir, object->pos - player->pos) <= 0.0f) {
+			continue;
+		}
 
 		Mesh* mesh = nullptr;
 
@@ -246,11 +256,6 @@ void Application::renderObjects(glm::mat4& matProjView)
 		}
 
 		glm::mat4 matTrans = matProjView * object->getModelMatrix();
-
-		//program.setVec3("color", object->color());
-		//checkGl();
-		//program.setMat4("matTrans", matTrans);
-		//checkGl();
 
 		mesh->draw(matTrans, object->color());
 

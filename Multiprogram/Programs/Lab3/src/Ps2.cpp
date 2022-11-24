@@ -14,106 +14,51 @@
 #include <gif_tags.h>
 #include <vif_codes.h>
 
-static framebuffer_t    framebuffer;
-static zbuffer_t        zbuffer;
-
-packet2_t*  packets[2];
-int         context = 0;
+#include <gsKit.h>
 
 namespace ps2::draw {
 
-void clearScreen()
+GSGLOBAL* gsGlobal;
+
+void flipScreen()
 {
-    packet2_t* packet = packet2_create(35, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+    gsKit_queue_exec(gsGlobal);
+    gsKit_sync_flip(gsGlobal);
+}
 
-    packet2_update(packet, draw_disable_tests(packet->next, 0, &zbuffer));
-    packet2_update(
-        packet, 
-        draw_clear(
-            packet->next, 
-            0, 
-            2048.0f - 320.0f,       2048.0f - 256.0f, 
-            framebuffer.width,      framebuffer.height,
-            32, 32, 32
-        )
-    );
+void initGraphics()
+{
+    gsGlobal = gsKit_init_global();
 
-    packet2_update(packet, draw_enable_tests(packet->next, 0, &zbuffer));
-    packet2_update(packet, draw_finish(packet->next));
+    gsGlobal->ZBuffering = GS_SETTING_ON;
+	//gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
+	//gsGlobal->PrimAAEnable = GS_SETTING_ON;
 
-    dma_wait_fast();
-    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
+	gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
 
-    packet2_free(packet);
+	dmaKit_init(D_CTRL_RELE_OFF, D_CTRL_MFD_OFF, D_CTRL_STS_UNSPEC, D_CTRL_STD_OFF, D_CTRL_RCYC_8, 1 << DMA_CHANNEL_GIF);
+	dmaKit_chan_init(DMA_CHANNEL_GIF);
 
-    draw_wait_finish();
+	gsKit_set_clamp(gsGlobal, GS_CMODE_REPEAT);
+
+	gsKit_vram_clear(gsGlobal);
+
+	gsKit_init_screen(gsGlobal);
+
+	gsKit_mode_switch(gsGlobal, GS_ONESHOT);
 }
 
 void beginFrame()
 {
-    printf("Begin frame\n");
-    clearScreen();
+    gsKit_clear(
+        gsGlobal, 
+        GS_SETREG_RGBAQ(0x00,0x00,0x00,0x80,0x00)
+    );
 }
 
 void endFrame()
 {
-    graph_wait_vsync();
-}
-
-inline void addPrimitive(packet2_t* packet)
-{
-    prim_t primitive;
-    primitive.type = PRIM_TRIANGLE;
-    primitive.shading = PRIM_SHADE_GOURAUD;
-    primitive.mapping = false;
-    primitive.fogging = false;
-    primitive.blending = false;
-    primitive.mapping_type = PRIM_MAP_ST;
-    primitive.colorfix = PRIM_UNFIXED;
-
-    const u64 regList = (
-        (GIF_REG_RGBAQ  & 0xF) << 0      |
-        (GIF_REG_XYZ2   & 0xF) << 4      |
-        (GIF_REG_RGBAQ  & 0xF) << 8      |
-        (GIF_REG_XYZ2   & 0xF) << 12     |
-        (GIF_REG_RGBAQ  & 0xF) << 16     |
-        (GIF_REG_XYZ2   & 0xF) << 20
-    );
-
-    packet2_utils_gs_add_prim_giftag(
-        packet,
-        &primitive,
-        1,              // Loop Count
-        regList,
-        3 * 2,          // Number of registers per loop
-        0               // Context
-    );
-}
-#define PACKED_XYZ2(X, Y, Z, ADC) ((u128(ADC)<<111) | (u128(Z)<<64) | (u128(Y)<<32) | (u128(X)))
-#define PACKED_RGBA(R, G, B, A) ((u128(A)<<96) | (u128(B)<<64) | (u128(G)<<32) | (u128(R)))
-
-inline void addVertex(packet2_t* packet, glm::vec4 pos, glm::vec4 color)
-{
-    packet2_add_s128(packet, PACKED_RGBA(
-        255,0, 0, 255
-    ));
-
-    const float offsetX = 20.0f;
-    const float offsetY = 20.0f;
-
-    packet2_add_s128(packet, PACKED_XYZ2(
-        u32(offsetX + pos.x) << 4,
-        u32(offsetY + pos.y) << 4,
-        128,
-        0
-    ));
-}
-
-void savePacket(packet2_t* packet, const char* filename)
-{
-    std::ofstream file(filename, std::ofstream::binary);
-
-    file.write((const char*)packet->base, packet2_get_qw_count(packet) * 16);
+    flipScreen();
 }
 
 void drawTrianglesWireframe(
@@ -121,128 +66,112 @@ void drawTrianglesWireframe(
 	glm::mat4& matTrans,
 	glm::vec4 color
 ) {    
-    printf("        Draw TRI\n");
+    for(int i = 0; i < verts.size(); i += 3) {
+        glm::vec4 v1 = verts[i];
+        glm::vec4 v2 = verts[i + 1];
+        glm::vec4 v3 = verts[i + 2];
 
-    packet2_t* packet = packets[context];
+        // Transform
+        v1 = matTrans * v1;
+        v2 = matTrans * v2;
+        v3 = matTrans * v3;
 
-    packet2_reset(packet, 0);
-    packet2_chain_open
+        if (v1.z <= 0.0f ||
+            v2.z <= 0.0f ||
+            v3.z <= 0.0f
+        ) {
+            continue;
+        }
 
-    static triangle_t tri;
-    tri.v0.x = 0.0f;
-    tri.v0.y = 0.0f;
-    tri.v0.z = 0;
-    
-    tri.v1.x = 2048.0f;
-    tri.v1.y = 0.0f;
-    tri.v1.z = 0;
+        // perspective divide
+        v1 = v1 / v1.w;
+        v2 = v2 / v2.w;
+        v3 = v3 / v3.w;
+        
+        if(
+            (v1.x < -1.0f && v2.x < -1.0f && v3.x < -1.0f) ||
+            (v1.x > 1.0f && v2.x > 1.0f && v3.x > 1.0f)
+        ) {
+            continue;
+        }
 
-    tri.v2.x = 0.0f;
-    tri.v2.y = 2048.0f;
-    tri.v2.z = 0;
+        float cDepth1 = glm::clamp((1.0f - v1.z) * 50.0f, 0.05f, 1.0f);
+        float cDepth2 = glm::clamp((1.0f - v2.z) * 50.0f, 0.05f, 1.0f);
+        float cDepth3 = glm::clamp((1.0f - v3.z) * 50.0f, 0.05f, 1.0f);
 
-    tri.color.r = 0;
-    tri.color.g = 128;
-    tri.color.b = 0;
+        // Viewport transform
+        v1.x = (1.0f + v1.x) * 320;
+        v1.y = (1.0f - v1.y) * 240;
+        v2.x = (1.0f + v2.x) * 320;
+        v2.y = (1.0f - v2.y) * 240;
+        v3.x = (1.0f + v3.x) * 320;
+        v3.y = (1.0f - v3.y) * 240;
 
-    packet2_update(
-        packet,
-        draw_triangle_filled(packet->next, 0, &tri)
-    );
-    packet2_update(packet, draw_finish(packet->next));
+        glm::vec4 color1 = color * cDepth1;
+        glm::vec4 color2 = color * cDepth2;
+        glm::vec4 color3 = color * cDepth3;
 
-    dma_channel_wait(DMA_CHANNEL_GIF, 0);
-    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
+        const unsigned int max_z = 1 << (32 - 1);
+        int z1 = (int)((v1.z + 1.0f) * max_z);
+        int z2 = (int)((v2.z + 1.0f) * max_z);
+        int z3 = (int)((v3.z + 1.0f) * max_z);
 
-    context ^= 1;
+        u64 uColor1 = GS_SETREG_RGBAQ(
+            color1.r * 255.0f, 
+            color1.g * 255.0f, 
+            color1.b * 255.0f, 
+            0xFF,
+            0x00);
+        u64 uColor2 = GS_SETREG_RGBAQ(
+            color2.r * 255.0f, 
+            color2.g * 255.0f, 
+            color2.b * 255.0f, 
+            0xFF,
+            0x00);
+        u64 uColor3 = GS_SETREG_RGBAQ(
+            color3.r * 255.0f, 
+            color3.g * 255.0f, 
+            color3.b * 255.0f, 
+            0xFF,
+            0x00);
+
+        gsKit_prim_line_goraud_3d(
+            gsGlobal,
+            v1.x, v1.y,     z1,
+            v2.x, v2.y,     z2,
+            uColor1,
+            uColor2
+        );
+        
+        gsKit_prim_line_goraud_3d(
+            gsGlobal,
+            v2.x, v2.y,     z2,
+            v3.x, v3.y,     z3,
+            uColor2,
+            uColor3
+        );
+        
+        gsKit_prim_line_goraud_3d(
+            gsGlobal,
+            v3.x, v3.y,     z3,
+            v1.x, v1.y,     z1,
+            uColor3,
+            uColor1
+        );
+    }    
 }
 
 //==============================================================================
 // Initialization code
 //==============================================================================
 
-void initGs(void)
-{
-    printf("    Allocating framebuffer\n");
-    framebuffer.width   = 640;
-    framebuffer.height  = 512;
-    framebuffer.mask    = 0;
-    framebuffer.psm     = GS_PSM_32;
-    framebuffer.address = graph_vram_allocate(
-        framebuffer.width,
-        framebuffer.height,
-        framebuffer.psm,
-        GRAPH_ALIGN_PAGE
-    );
-
-    printf("    Allocating z buffer\n");
-    zbuffer.enable  = DRAW_ENABLE;
-    zbuffer.mask    = 0;
-    zbuffer.method  = ZTEST_METHOD_GREATER_EQUAL;
-    zbuffer.zsm     = GS_ZBUF_32;
-    zbuffer.address = graph_vram_allocate(
-        framebuffer.width, 
-        framebuffer.height,
-        zbuffer.zsm,
-        GRAPH_ALIGN_PAGE
-    );
-
-    printf("    Setting GS to use the framebuffer\n");
-    graph_initialize(
-        framebuffer.address,
-        framebuffer.width, 
-        framebuffer.height, 
-        framebuffer.psm,
-        0,
-        0
-    );
-}
-
-void initDrawingEnvironment()
-{
-    packet2_t* packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 1);
-
-    printf("    Setting up drawing environment\n");
-    packet2_update(
-        packet,
-        draw_setup_environment(packet->next, 0, &framebuffer, &zbuffer)
-    );
-
-    printf("    Setting primitive offset\n");
-    packet2_update(
-        packet,
-        draw_primitive_xyoffset(packet->next, 0, (2048-320), (2048-256))
-    );
-
-    printf("    Adding finish to packet\n");
-    packet2_update(
-        packet,
-        draw_finish(packet->next)
-    );
-
-    printf("    Sending the packet\n");
-    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
-
-    printf("    Waiting on DMA\n");
-    dma_wait_fast();
-
-    printf("        Done\n");
-    packet2_free(packet);
-}
 
 bool init()
 {
-    printf("    Drawing environment: path2\n");
+    initGraphics();
 
-	dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
-	dma_channel_fast_waits(DMA_CHANNEL_GIF);
-
-    initGs();
-    initDrawingEnvironment();
-
-    packets[0] = packet2_create(1024, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-    packets[1] = packet2_create(1024, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
-
+    gsKit_set_test(gsGlobal, GS_ZTEST_ON);
+    
     return true;
 }
 
