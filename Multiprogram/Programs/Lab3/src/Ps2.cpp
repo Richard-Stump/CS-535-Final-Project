@@ -1,6 +1,7 @@
 #include "Ps2.hpp"
 
 #include <stdio.h>
+#include <fstream>
 
 #include <kernel.h>
 #include <tamtypes.h>
@@ -10,9 +11,14 @@
 #include <packet2_utils.h>
 #include <graph.h>
 #include <draw.h>
+#include <gif_tags.h>
+#include <vif_codes.h>
 
 static framebuffer_t    framebuffer;
 static zbuffer_t        zbuffer;
+
+packet2_t*  packets[2];
+int         context = 0;
 
 namespace ps2::draw {
 
@@ -28,7 +34,7 @@ void clearScreen()
             0, 
             2048.0f - 320.0f,       2048.0f - 256.0f, 
             framebuffer.width,      framebuffer.height,
-            128, 128, 128
+            32, 32, 32
         )
     );
 
@@ -56,83 +62,101 @@ void endFrame()
 
 inline void addPrimitive(packet2_t* packet)
 {
-    // Add the tag for the primitive
-    packet2_add_u64(packet,
-        GIF_SET_TAG(
-            3,                          // Number of loop
-            1,                          // End of packet
-            1,                          // Primitive Enable
-            GIF_SET_PRIM(          
-                GIF_PRIM_TRIANGLE,      // Primitive Enable
-                1,                      // Shading: 0 = flat, 1 = goroud
-                0,                      // Texture mapping enable
-                0,                      // Fog enable
-                0,                      // Alpha blend enable
-                0,                      // Antialias enable
-                0,                      // Texture Map type: 0=stq, 1=uv
-                0,                      // Context number
-                0                       // Fix fragment value
-            ),
-            GIF_FLG_PACKED,             // Data format
-            2                           // Number of registers per loop
-        )
+    prim_t primitive;
+    primitive.type = PRIM_TRIANGLE;
+    primitive.shading = PRIM_SHADE_GOURAUD;
+    primitive.mapping = false;
+    primitive.fogging = false;
+    primitive.blending = false;
+    primitive.mapping_type = PRIM_MAP_ST;
+    primitive.colorfix = PRIM_UNFIXED;
+
+    const u64 regList = (
+        (GIF_REG_RGBAQ  & 0xF) << 0      |
+        (GIF_REG_XYZ2   & 0xF) << 4      |
+        (GIF_REG_RGBAQ  & 0xF) << 8      |
+        (GIF_REG_XYZ2   & 0xF) << 12     |
+        (GIF_REG_RGBAQ  & 0xF) << 16     |
+        (GIF_REG_XYZ2   & 0xF) << 20
     );
 
-    packet2_add_u64(
+    packet2_utils_gs_add_prim_giftag(
         packet,
-        (GIF_REG_RGBAQ & 0xF) << 0 |
-        (GIF_REG_XYZ2 & 0xF) << 4
-    );  
+        &primitive,
+        1,              // Loop Count
+        regList,
+        3 * 2,          // Number of registers per loop
+        0               // Context
+    );
 }
+#define PACKED_XYZ2(X, Y, Z, ADC) ((u128(ADC)<<111) | (u128(Z)<<64) | (u128(Y)<<32) | (u128(X)))
+#define PACKED_RGBA(R, G, B, A) ((u128(A)<<96) | (u128(B)<<64) | (u128(G)<<32) | (u128(R)))
 
 inline void addVertex(packet2_t* packet, glm::vec4 pos, glm::vec4 color)
 {
-    packet2_add_u32(packet, 255);   // R
-    packet2_add_u32(packet, 0);     // G
-    packet2_add_u32(packet, 0);     // B
-    packet2_add_u32(packet, 255);   // A
+    packet2_add_s128(packet, PACKED_RGBA(
+        255,0, 0, 255
+    ));
 
-    packet2_add_u32(packet, ftoi4(pos.x));
-    packet2_add_u32(packet, ftoi4(pos.y));
-    packet2_add_u32(packet, ftoi4(pos.z));
-    packet2_add_u32(packet, 0x00);
+    const float offsetX = 20.0f;
+    const float offsetY = 20.0f;
+
+    packet2_add_s128(packet, PACKED_XYZ2(
+        u32(offsetX + pos.x) << 4,
+        u32(offsetY + pos.y) << 4,
+        128,
+        0
+    ));
+}
+
+void savePacket(packet2_t* packet, const char* filename)
+{
+    std::ofstream file(filename, std::ofstream::binary);
+
+    file.write((const char*)packet->base, packet2_get_qw_count(packet) * 16);
 }
 
 void drawTrianglesWireframe(
 	std::vector<glm::vec4> verts, 
 	glm::mat4& matTrans,
 	glm::vec4 color
-) {
+) {    
     printf("        Draw TRI\n");
 
-    packet2_t* packet = packet2_create(512, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+    packet2_t* packet = packets[context];
 
-    // Start the packet in direct mode. this is necessary since we are rending
-    // over path2.
-    packet2_pad96(packet, 0);
-    packet2_vif_flush(packet, 0);
-    packet2_pad96(packet, 0);
-    packet2_vif_open_direct(packet, 0);
+    packet2_reset(packet, 0);
+    packet2_chain_open
+
+    static triangle_t tri;
+    tri.v0.x = 0.0f;
+    tri.v0.y = 0.0f;
+    tri.v0.z = 0;
     
-    addPrimitive(packet);
-    addVertex(packet, glm::vec4{-1024.0f, 0.0f, -1.0f, 0.0f}, glm::vec4());
-    addVertex(packet, glm::vec4{ 1024.0f, 0.0f, -1.0f, 0.0f}, glm::vec4());
-    addVertex(packet, glm::vec4{ 0.0f, 1024.0f, -1.0f, 0.0f}, glm::vec4());
+    tri.v1.x = 2048.0f;
+    tri.v1.y = 0.0f;
+    tri.v1.z = 0;
 
-    // Close the direct mode. This will automatically count the number of qwords
-    // added for us and construct the VIF command to pass the data to the GIF
-    packet2_vif_close_direct_auto(packet);
-    
-    packet2_utils_vu_add_end_tag(packet);
+    tri.v2.x = 0.0f;
+    tri.v2.y = 2048.0f;
+    tri.v2.z = 0;
 
-    printf("                    Waiting on DMA\n");
+    tri.color.r = 0;
+    tri.color.g = 128;
+    tri.color.b = 0;
+
+    packet2_update(
+        packet,
+        draw_triangle_filled(packet->next, 0, &tri)
+    );
+    packet2_update(packet, draw_finish(packet->next));
+
     dma_channel_wait(DMA_CHANNEL_GIF, 0);
-	dma_channel_wait(DMA_CHANNEL_VIF1, 0);
-    printf("                    Sending Tri\n");
-    dma_channel_send_packet2(packet, DMA_CHANNEL_VIF1, 1);
+    dma_channel_send_packet2(packet, DMA_CHANNEL_GIF, 1);
 
-    packet2_free(packet);
+    context ^= 1;
 }
+
 //==============================================================================
 // Initialization code
 //==============================================================================
@@ -176,7 +200,7 @@ void initGs(void)
 
 void initDrawingEnvironment()
 {
-    packet2_t* packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 0);
+    packet2_t* packet = packet2_create(20, P2_TYPE_NORMAL, P2_MODE_NORMAL, 1);
 
     printf("    Setting up drawing environment\n");
     packet2_update(
@@ -210,8 +234,14 @@ bool init()
 {
     printf("    Drawing environment: path2\n");
 
+	dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
+	dma_channel_fast_waits(DMA_CHANNEL_GIF);
+
     initGs();
     initDrawingEnvironment();
+
+    packets[0] = packet2_create(1024, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
+    packets[1] = packet2_create(1024, P2_TYPE_NORMAL, P2_MODE_CHAIN, 1);
 
     return true;
 }

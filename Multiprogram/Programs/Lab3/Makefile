@@ -8,9 +8,9 @@
 
 # External libraries and headers for the program. The libcommon.a file does get
 # prefixed with -l since it is not in a library search path.
-EE_LIBS = ../../Common/libcommon.a -ldraw -lgraph -lmath3d -lpacket2 -ldma  -lstdc++
+EE_LIBS = ../../Common/libcommon.a -ldraw -lgraph -lmath3d -lpacket2 -ldma -lpacket -lstdc++
 EE_INCS = ../../Common/include
-
+EE_CXXFLAGS = -fpermissive
 # Options related to this specific program
 EE_BIN = ./out/LAB3.elf
 EE_OBJS = ./src/Main.o ./src/Ps2.o ./src/Application.o ./src/GameObject.o ./src/Mesh.o
