@@ -24,6 +24,7 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/transform.hpp>
 #include <glm/gtc/random.hpp>
+#include <glm/gtx/vector_angle.hpp>
 
 Application::Application()
 {
@@ -77,6 +78,11 @@ void Application::updateInput() {
 	inputState.turnRight = pad->held(PAD_CIRCLE);
 
 	inputState.shoot = pad->held(PAD_CROSS);
+	
+	shouldQuit = pad->held(PAD_START);
+	if(shouldQuit) {
+		printf("    START WAS PRESSED!!!!\n");
+	}
 }
 
 bool Application::update(float deltaTime)
@@ -103,7 +109,7 @@ bool Application::update(float deltaTime)
 			i++;
 	}
 
-	return true;
+	return !shouldQuit;
 }
 
 void Application::collisionDetection()
@@ -221,6 +227,11 @@ void Application::renderObjects(glm::mat4& matProjView)
 
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
+	float pHead = player->getHeading();
+	glm::vec3 pDir{
+		glm::cos(pHead), 0.0f, glm::sin(pHead)
+	};
+
 	int renderCount = 0;
 	for (GameObject* object : objects) {
 		//printf("Rendering %s\n", object->type().c_str());
@@ -229,13 +240,9 @@ void Application::renderObjects(glm::mat4& matProjView)
 		if (object->type() == player->type())
 			continue;
 
-
-		float pHead = player->getHeading();
-		glm::vec3 pDir{
-			glm::cos(pHead), 0.0f, glm::sin(pHead)
-		};
-
-		if(glm::dot(pDir, object->pos - player->pos) <= 0.0f) {
+		// If the object is out of the player's view, don't bother to render it
+		if(glm::angle(pDir, glm::normalize(object->pos - player->pos)) > 1.0472)
+		{
 			continue;
 		}
 
@@ -248,7 +255,6 @@ void Application::renderObjects(glm::mat4& matProjView)
 			}
 		}
 
-
 		if (mesh == nullptr) {
 			std::cerr << "Could not find mesh for object with mesh name \""
 				<< object->meshName() << "\"" << std::endl;
@@ -260,9 +266,6 @@ void Application::renderObjects(glm::mat4& matProjView)
 		mesh->draw(matTrans, object->color());
 
 		renderCount++;
-	}
-	if(renderCount == 0) {
-		printf("Did not render anything!!!\n");
 	}
 }
 

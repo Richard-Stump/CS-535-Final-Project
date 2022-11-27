@@ -68,7 +68,7 @@ public:
 
 protected:
 	float		heading = 0.0f;
-	float		moveSpeed = 3.0;
+	float		moveSpeed = 5.0;
 	float		shootTimer = 0.0f;
 	int			bulletCount = 0;
 

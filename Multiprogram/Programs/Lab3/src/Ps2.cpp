@@ -32,7 +32,7 @@ void initGraphics()
 
     gsGlobal->ZBuffering = GS_SETTING_ON;
 	//gsGlobal->PrimAlphaEnable = GS_SETTING_ON;
-	//gsGlobal->PrimAAEnable = GS_SETTING_ON;
+	gsGlobal->PrimAAEnable = GS_SETTING_ON;
 
 	gsKit_set_primalpha(gsGlobal, GS_SETREG_ALPHA(0, 1, 0, 1, 0), 0);
 
@@ -50,6 +50,7 @@ void initGraphics()
 
 void beginFrame()
 {
+    flipScreen();
     gsKit_clear(
         gsGlobal, 
         GS_SETREG_RGBAQ(0x00,0x00,0x00,0x80,0x00)
@@ -58,7 +59,6 @@ void beginFrame()
 
 void endFrame()
 {
-    flipScreen();
 }
 
 void drawTrianglesWireframe(
@@ -66,6 +66,8 @@ void drawTrianglesWireframe(
 	glm::mat4& matTrans,
 	glm::vec4 color
 ) {    
+    float lineData[3 * 4];
+
     for(int i = 0; i < verts.size(); i += 3) {
         glm::vec4 v1 = verts[i];
         glm::vec4 v2 = verts[i + 1];
@@ -96,8 +98,6 @@ void drawTrianglesWireframe(
         }
 
         float cDepth1 = glm::clamp((1.0f - v1.z) * 50.0f, 0.05f, 1.0f);
-        float cDepth2 = glm::clamp((1.0f - v2.z) * 50.0f, 0.05f, 1.0f);
-        float cDepth3 = glm::clamp((1.0f - v3.z) * 50.0f, 0.05f, 1.0f);
 
         // Viewport transform
         v1.x = (1.0f + v1.x) * 320;
@@ -108,55 +108,26 @@ void drawTrianglesWireframe(
         v3.y = (1.0f - v3.y) * 240;
 
         glm::vec4 color1 = color * cDepth1;
-        glm::vec4 color2 = color * cDepth2;
-        glm::vec4 color3 = color * cDepth3;
 
-        const unsigned int max_z = 1 << (32 - 1);
+        const unsigned int max_z = 1 << (32 - 1); 
         int z1 = (int)((v1.z + 1.0f) * max_z);
         int z2 = (int)((v2.z + 1.0f) * max_z);
         int z3 = (int)((v3.z + 1.0f) * max_z);
 
-        u64 uColor1 = GS_SETREG_RGBAQ(
-            color1.r * 255.0f, 
-            color1.g * 255.0f, 
-            color1.b * 255.0f, 
-            0xFF,
-            0x00);
-        u64 uColor2 = GS_SETREG_RGBAQ(
-            color2.r * 255.0f, 
-            color2.g * 255.0f, 
-            color2.b * 255.0f, 
-            0xFF,
-            0x00);
-        u64 uColor3 = GS_SETREG_RGBAQ(
-            color3.r * 255.0f, 
-            color3.g * 255.0f, 
-            color3.b * 255.0f, 
-            0xFF,
-            0x00);
-
-        gsKit_prim_line_goraud_3d(
-            gsGlobal,
-            v1.x, v1.y,     z1,
-            v2.x, v2.y,     z2,
-            uColor1,
-            uColor2
-        );
+        lineData[0] = v1.x; lineData[1] = v1.y; ((u32*)lineData)[2] = z1;
+        lineData[3] = v2.x; lineData[4] = v2.y; ((u32*)lineData)[5] = z2;
+        lineData[6] = v3.x; lineData[7] = v3.y; ((u32*)lineData)[8] = z3;
+        lineData[9] = v1.x; lineData[10] = v1.y; ((u32*)lineData)[11] = z1;
         
-        gsKit_prim_line_goraud_3d(
-            gsGlobal,
-            v2.x, v2.y,     z2,
-            v3.x, v3.y,     z3,
-            uColor2,
-            uColor3
-        );
-        
-        gsKit_prim_line_goraud_3d(
-            gsGlobal,
-            v3.x, v3.y,     z3,
-            v1.x, v1.y,     z1,
-            uColor3,
-            uColor1
+        gsKit_prim_line_strip_3d(
+            gsGlobal, lineData, 4,  
+                GS_SETREG_RGBAQ(
+                color1.r * 255.0f, 
+                color1.g * 255.0f, 
+                color1.b * 255.0f, 
+                0xFF,
+                0x00
+            )
         );
     }    
 }
@@ -170,7 +141,10 @@ bool init()
 {
     initGraphics();
 
-    gsKit_set_test(gsGlobal, GS_ZTEST_ON);
+    if (gsGlobal->ZBuffering == GS_SETTING_ON) {
+        printf("Using ZBuffering!\n");
+		gsKit_set_test(gsGlobal, GS_ZTEST_ON);
+    }
     
     return true;
 }

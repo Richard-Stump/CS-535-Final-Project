@@ -7,6 +7,8 @@
 #include "Ps2.hpp"
 #include "Application.hpp"
 
+#include "MainHack.hpp"
+
 using namespace ps2;
 
 void drawTrianglesWireframe(
@@ -52,7 +54,9 @@ int main(int argc, char** argv)
         prevTime = curTime;
         
         // Update the gamestate
-        app->update(deltaTime);
+        if(!app->update(deltaTime)) {
+            running = false;
+        } 
 
         draw::beginFrame();
         app->render();
@@ -60,4 +64,5 @@ int main(int argc, char** argv)
     }
 
     printf("Returning From Lab3\n");
+    return 0;
 }

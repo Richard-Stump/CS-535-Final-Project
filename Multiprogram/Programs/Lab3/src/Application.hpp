@@ -54,6 +54,7 @@ private:
 	void updateInput();
 
 	bool renderDebugSpheres = false;
+	bool shouldQuit 		= false;
 
 	const float		fovY	= glm::radians(60.0f);
 	const float		near	= 0.1;

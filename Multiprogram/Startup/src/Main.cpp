@@ -33,6 +33,11 @@ extern "C" {
 
 int main(int argc, char** argv)
 {
+    char* argv_test[] = {
+        "12",
+        nullptr
+    };
+    
     // Load up the cubes elf to see if this works.
-    LoadExecPS2("cdrom0:\\LAB3_R.ELF", argc, argv);
+    LoadExecPS2("cdrom0:\\LAB3.ELF", 1, (char**)argv_test);
 }
