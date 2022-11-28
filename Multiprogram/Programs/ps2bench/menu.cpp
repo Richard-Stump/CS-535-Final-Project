@@ -72,6 +72,31 @@ void handlerAbout(u32 sel)
 {
 }
 
+void handlerSlides(u32 sel)
+{
+
+}
+
+void handlerLab3(u32 sel)
+{
+
+}
+
+void handlerBedrich(u32 sel)
+{
+
+}
+
+void handlerPurdue(u32 sel)
+{
+
+}
+
+void handlerControllerCube(u32 sel)
+{
+
+}
+
 void Menu::Load()
 {
 	printf("[ee] Starting menu load\n");
@@ -79,7 +104,22 @@ void Menu::Load()
 	topLevel.parent = &topLevel;
 	topLevel.clickHandler = handlerNULL;
 	topLevel.title = "CS535 Final Project Presentation\n";
+	
+	MenuObject* slides = new MenuObject(&topLevel, ObjectType::FUNCTION, "Start Slides", handlerSlides);
 
+	MenuObject* lab3 = new MenuObject(&topLevel, ObjectType::FUNCTION, "Lab 3", handlerLab3);
+
+	MenuObject* catCubes = new MenuObject(&topLevel, ObjectType::CATEGORY, "Many Cubes", handlerNULL);
+	{
+		MenuObject* cubePurdue = new MenuObject(catCubes, ObjectType::FUNCTION, "Purdue", handlerPurdue);
+		MenuObject* cubeBedrich = new MenuObject(catCubes, ObjectType::FUNCTION, "Bedrich", handlerBedrich);
+
+	}
+	MenuObject* controllerCube = new MenuObject(&topLevel, ObjectType::FUNCTION, "Controller Cube", handlerControllerCube);
+
+
+
+	/*
 	MenuObject* catEE = new MenuObject(&topLevel, ObjectType::CATEGORY, "CPU", handlerNULL);
 	{
 
@@ -126,6 +166,7 @@ void Menu::Load()
 	// {
 	// 	new MenuObject(catBirdy, ObjectType::FUNCTION,"VU1",handlerBirdyVU1,true);
 	// }
+	*/
 
 	new MenuObject(&topLevel, ObjectType::FUNCTION, "About", handlerAbout);
 	printf("[ee] Finished menu load!\n");

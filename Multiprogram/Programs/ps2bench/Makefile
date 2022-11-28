@@ -12,8 +12,8 @@ EE_OBJS += birdy/vu1Birdy.o
 EE_OBJS += gs/gs.o
  
 EE_BIN = ps2bench.elf
-EE_INCS = $(GSKIT)/include
-EE_LIBS = -lkernel -lgraph -L$(GSKIT)/lib -lgskit -ldmakit -lpad -lpatches -lstdc++ -ldma -lpacket
+EE_INCS = ../../Common/include -I. -I$(GSKIT)/include
+EE_LIBS = ../../Common/libcommon.a -lkernel -lgraph -L$(GSKIT)/lib -lgskit -ldmakit -lpad -lpatches -lstdc++ -ldma -lpacket
 EE_DVP = dvp-as
 EE_VCL = vcl
 
